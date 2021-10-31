@@ -49,25 +49,29 @@ def get_album_stats(dir: Path) -> AlbumDirStats:
 
 def sort(dir: Path, root_dir: Path = None) -> None:
     if root_dir is None:
-        root_dir = Path(dir)
+        root_dir = Path(dir).resolve()
 
     for item in dir.iterdir():
         if item.is_dir():
             sort(item, root_dir)
     if is_album_directory(dir):
         stats = get_album_stats(dir)
-        _target_dir = f"{root_dir}/{stats.genre[:30] if (stats.genre and stats.genre != 'Other') else 'UNKNOWN'}/{stats.artist[:30] or 'UNKNOWN'}/"
-        album_title = f"{(stats.year[:30] + ' - ') if (stats.year and stats.album) else ''}" \
-                      f"{'UNKNOWN,Singles' if not stats.album else stats.album.replace(':', '–')}".strip(
-                      )
-        print(_target_dir + album_title)
-        target_dir = Path(_target_dir)
+
+        genre = stats.genre[:30] if (stats.genre and stats.genre != "Other") else "UNKNOWN_GENRE"
+        artist = stats.artist[:30] or "UNKNOWN_ARTIST"
+        album = stats.album.replace(":", "-").strip()[:30] if stats.album else "Singles"
+        if stats.year:
+            album = stats.year + " - " + album
+
+        print(genre, artist, album)
+        target_dir = root_dir / genre / artist
         target_dir.mkdir(parents=True, exist_ok=True)
-        target_dir = target_dir / album_title
+        target_dir = target_dir / album
+
         try:
             dir.rename(target_dir)
         except FileExistsError as e:
-            print(f"{e}: Album titled '{album_title} already exists")
+            print(f"{e}: Album titled '{album} already exists")
 
 
 def cleanup(dir: Path) -> None:
