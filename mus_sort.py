@@ -1,5 +1,5 @@
 from pathlib import Path
-
+import textwrap
 from tinytag import TinyTag
 
 
@@ -8,7 +8,7 @@ accepted_files = tuple(("." + i) for i in ("mp3", "bit", "wav", "wave", "opus",
 
 
 def fix_new_path(name: str) -> str:
-    return name.strip()[:30].replace(":", "-")
+    return textwrap.fill(name.strip().replace(": ", " - ").replace(":", ";"), width=30, max_lines=1)
 
 
 def is_album_directory(dir: Path) -> (Path or False):
@@ -53,7 +53,7 @@ def get_album_stats(dir: Path) -> AlbumDirStats:
 
 def sort(dir: Path, root_dir: Path = None) -> None:
     if root_dir is None:
-        root_dir = Path(dir).resolve()
+        root_dir = dir.resolve()
 
     for item in dir.iterdir():
         if item.is_dir():
@@ -63,11 +63,15 @@ def sort(dir: Path, root_dir: Path = None) -> None:
             return
         stats = get_album_stats(dir)
 
-        genre = fix_new_path(stats.genre) if (stats.genre and stats.genre != "Other") else "UNKNOWN_GENRE"
-        artist = fix_new_path(stats.artist) or "UNKNOWN_ARTIST"
-        album = fix_new_path(stats.album) if stats.album else "Singles"
+        genre = stats.genre if (
+            stats.genre and stats.genre != "Other") else "UNKNOWN_GENRE"
+        artist = stats.artist or "UNKNOWN_ARTIST"
+        album = stats.album or "Singles"
         if stats.year:
             album = stats.year + ". " + album
+        genre = fix_new_path(genre)
+        artist = fix_new_path(artist)
+        album = fix_new_path(album)
 
         print(genre, artist, album)
         target_dir = root_dir / genre / artist
@@ -91,7 +95,8 @@ def cleanup(dir: Path) -> None:
 
 
 if __name__ == "__main__":
-    dirs = [("./" + str(dir)) for dir in Path(".").iterdir() if dir.is_dir() and dir.name != ".git"]
+    dirs = [("./" + str(dir)) for dir in Path(".").iterdir()
+            if dir.is_dir() and dir.name != ".git"]
     print(f"Subdirectories here: {', '.join(dirs)}")
     p = Path(input("Path?  "))
 
