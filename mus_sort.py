@@ -7,6 +7,10 @@ accepted_files = tuple(("." + i) for i in ("mp3", "bit", "wav", "wave", "opus",
                                            "flac", "asf", "wma", "mp4", "m4a", "m4b", "aiff", "aif", "aifc"))
 
 
+def fix_new_path(name: str) -> str:
+    return name.strip()[:30].replace(":", "-")
+
+
 def is_album_directory(dir: Path) -> (Path or False):
     for item in dir.iterdir():
         if item.suffix.lower() in accepted_files:
@@ -55,13 +59,15 @@ def sort(dir: Path, root_dir: Path = None) -> None:
         if item.is_dir():
             sort(item, root_dir)
     if is_album_directory(dir):
+        if dir.name == ".git":
+            return
         stats = get_album_stats(dir)
 
-        genre = stats.genre[:30] if (stats.genre and stats.genre != "Other") else "UNKNOWN_GENRE"
-        artist = stats.artist[:30] or "UNKNOWN_ARTIST"
-        album = stats.album.replace(":", "-").strip()[:30] if stats.album else "Singles"
+        genre = fix_new_path(stats.genre) if (stats.genre and stats.genre != "Other") else "UNKNOWN_GENRE"
+        artist = fix_new_path(stats.artist) or "UNKNOWN_ARTIST"
+        album = fix_new_path(stats.album) if stats.album else "Singles"
         if stats.year:
-            album = stats.year + " - " + album
+            album = stats.year + ". " + album
 
         print(genre, artist, album)
         target_dir = root_dir / genre / artist
@@ -75,7 +81,7 @@ def sort(dir: Path, root_dir: Path = None) -> None:
 
 
 def cleanup(dir: Path) -> None:
-    if not dir.is_dir():
+    if dir.name == ".git" or not dir.is_dir():
         return
     [cleanup(subdir) for subdir in dir.iterdir()]
     try:
@@ -85,7 +91,7 @@ def cleanup(dir: Path) -> None:
 
 
 if __name__ == "__main__":
-    dirs = [("./" + str(dir)) for dir in Path(".").iterdir() if dir.is_dir()]
+    dirs = [("./" + str(dir)) for dir in Path(".").iterdir() if dir.is_dir() and dir.name != ".git"]
     print(f"Subdirectories here: {', '.join(dirs)}")
     p = Path(input("Path?  "))
 
