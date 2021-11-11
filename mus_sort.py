@@ -7,8 +7,10 @@ accepted_files = tuple(("." + i) for i in ("mp3", "bit", "wav", "wave", "opus",
                                            "flac", "asf", "wma", "mp4", "m4a", "m4b", "aiff", "aif", "aifc"))
 
 
-def fix_new_path(name: str) -> str:
-    return textwrap.fill(name.strip().replace(": ", " - ").replace(":", ";"), width=30, max_lines=1)
+def fix_new_path(name: str, *, genre: bool = False) -> str:
+    name = textwrap.fill(name.strip(), width=50, placeholder="(...)", max_lines=1).replace(
+        ": ", " - ").replace(":", ";").replace("\"", "'").replace("\\", "").replace("/", "")
+    return name.replace("|", "")
 
 
 def is_album_directory(dir: Path) -> (Path or False):
@@ -76,6 +78,8 @@ def sort(dir: Path, root_dir: Path = None) -> None:
         print(genre, artist, album)
         target_dir = root_dir / genre / artist
         target_dir.mkdir(parents=True, exist_ok=True)
+        target_dir.resolve()
+
         target_dir = target_dir / album
 
         try:
