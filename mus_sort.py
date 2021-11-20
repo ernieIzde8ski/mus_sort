@@ -1,5 +1,7 @@
-from pathlib import Path
 import textwrap
+from pathlib import Path
+from typing import Literal, Optional, Union
+
 from tinytag import TinyTag
 
 
@@ -13,7 +15,7 @@ def fix_new_path(name: str, *, genre: bool = False) -> str:
     return name.replace("|", "")
 
 
-def is_album_directory(dir: Path) -> (Path or False):
+def is_album_directory(dir: Path) -> Union[Path, Literal[False]]:
     for item in dir.iterdir():
         if item.suffix.lower() in accepted_files:
             return item
@@ -21,10 +23,10 @@ def is_album_directory(dir: Path) -> (Path or False):
 
 
 class AlbumDirStats:
-    year: int or None
-    genre: str or None
-    artist: str or None
-    album: str or None
+    year: Optional[str]
+    genre: Optional[str]
+    artist: Optional[str]
+    album: Optional[str]
 
     def __init__(self, dir: Path) -> None:
         self.dir = Path(dir)
