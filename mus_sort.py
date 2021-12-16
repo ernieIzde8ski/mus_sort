@@ -38,8 +38,7 @@ class AlbumDirStats:
 
 def get_album_stats(dir: Path) -> AlbumDirStats:
     resp = AlbumDirStats(dir)
-    filepaths = [i for i in dir.iterdir() if i.is_file()
-                 and i.suffix.lower() in accepted_files]
+    filepaths = [i for i in dir.iterdir() if (i.is_file() and i.suffix.lower() in accepted_files)]
 
     for path in filepaths:
         track = TinyTag.get(path)
@@ -55,13 +54,13 @@ def get_album_stats(dir: Path) -> AlbumDirStats:
     return resp
 
 
-def sort(dir: Path, root_dir: Path = None) -> None:
+def sort(dir: Path, root_dir: Path = None, *, errs: list[str] = None) -> None:
     if root_dir is None:
         root_dir = dir.resolve()
 
     for item in dir.iterdir():
         if item.is_dir():
-            sort(item, root_dir)
+            sort(item, root_dir, errs=errs)
     if is_album_directory(dir):
         if dir.name == ".git":
             return
@@ -86,8 +85,10 @@ def sort(dir: Path, root_dir: Path = None) -> None:
 
         try:
             dir.rename(target_dir)
-        except FileExistsError as e:
-            print(f"{e}: Album titled '{album} already exists")
+        except FileExistsError as err:
+            print(err)
+            if errs is not None:
+                errs.append(album)
 
 
 def cleanup(dir: Path) -> None:
@@ -106,5 +107,9 @@ if __name__ == "__main__":
     print(f"Subdirectories here: {', '.join(dirs)}")
     p = Path(input("Path?  "))
 
-    sort(p)
+    arr = []
+    sort(p, errs=arr)
     cleanup(Path(p))
+    if len(arr) > 0:
+        print("\n\n\nErrors occurred for the following albums:")
+        [print(err) for err in arr]
