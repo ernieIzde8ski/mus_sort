@@ -4,21 +4,21 @@ from typing import Literal, Optional, Union
 
 from tinytag import TinyTag
 
-
+tuple(map(lambda i: "." + i, ("mp3", "bit", "wav", "wave", "opus", "flac", "asf", "wma", "mp4", "m4a", "m4b", "aiff", "aif", "aifc")))
 accepted_files = tuple(("." + i) for i in ("mp3", "bit", "wav", "wave", "opus",
                                            "flac", "asf", "wma", "mp4", "m4a", "m4b", "aiff", "aif", "aifc"))
 
 
-def fix_new_path(name: str, *, genre: bool = False) -> str:
-    name = textwrap.fill(name.strip(), width=50, placeholder="(...)", max_lines=1).replace(
-        ": ", " - ").replace(":", ";").replace("\"", "'").replace("\\", "").replace("/", "")
-    return name.replace("|", "")
+def fix_new_path(name: str) -> str:
+    """Makes a path suitable for Windows"""
+    return textwrap.fill(name.strip(), width=50, placeholder="(...)", max_lines=1).replace(
+        ": ", " - ").replace(":", ";").replace("\"", "'").replace("\\", "").replace("/", "").replace("|", "")
 
 
-def is_album_directory(dir: Path) -> Union[Path, Literal[False]]:
+def is_album_directory(dir: Path) -> bool:
     for item in dir.iterdir():
         if item.suffix.lower() in accepted_files:
-            return item
+            return True
     return False
 
 
@@ -101,15 +101,19 @@ def cleanup(dir: Path) -> None:
         pass
 
 
-if __name__ == "__main__":
-    dirs = [("./" + str(dir)) for dir in Path(".").iterdir()
-            if dir.is_dir() and dir.name != ".git"]
-    print(f"Subdirectories here: {', '.join(dirs)}")
-    p = Path(input("Path?  "))
+def main() -> None:
+    path = Path(input("Path?  "))
 
-    arr = []
-    sort(p, errs=arr)
-    cleanup(Path(p))
-    if len(arr) > 0:
+    errors = []
+    sort(path, errs=errors)
+    cleanup(Path(path))
+    if len(errors) > 0:
         print("\n\n\nErrors occurred for the following albums:")
-        [print(err) for err in arr]
+        for error in errors:
+            print(error)
+
+
+if __name__ == "__main__":
+    dirs = [("./" + str(path)) for path in Path(".").iterdir() if (path.is_dir() and path.name != ".git")]
+    print(f"Subdirectories here: {', '.join(dirs)}")
+    main()
