@@ -3,20 +3,25 @@ from pathlib import Path
 from typing import Generator, Optional
 
 from tinytag import TinyTag
+
 accepted_files = ('.mp3', '.wav', '.flac', '.aiff', '.aifc', '.aif', '.afc', '.oga', '.ogg', '.opus', '.wma',
                   '.m4b', '.m4a', '.mp4')
 
 
 def is_valid_file(path: Path) -> bool:
+    """Verifies a path is a music file compatible with TinyTag"""
     return path.is_file() and path.suffix.lower() in accepted_files
 
 
 def is_valid_dir(path: Path) -> bool:
-    """Checks that a path is both a directory and not a git or pycache directory"""
+    """Verifies that a path is both a directory and not a git or pycache directory"""
     return path.is_dir() and path.name != ".git" and path.name != "__pycache__"
 
 
 def is_album_directory(dir: Path) -> bool:
+    """Verifies that a directory contains music"""
+    if not dir.is_dir():
+        raise ValueError(f"Argument {dir} is not a directory")
     for item in dir.iterdir():
         if item.suffix.lower() in accepted_files:
             return True
@@ -35,60 +40,64 @@ def fix_new_path(name: str) -> str:
 
 
 def fix_new_paths(*names: str) -> Generator[str, None, None]:
-    """Shortened method to call fix_new_path on multiple items
-
-    Returns the same length of items"""
+    """Alias for calling fix_new_path on multiple items. Returns the same length of items."""
     return (fix_new_path(name) for name in names)
 
 
-class AlbumDirStats:
+class AlbumStats:
+    """Contains useful information about an album directory"""
     year: Optional[str]
     genre: Optional[str]
     artist: Optional[str]
     album: Optional[str]
+    keys = ("year", "genre", "album", "artist")
 
-    def __init__(self, dir: Path, *,
-                 year: str = None, genre: str = None, artist: str = None, album: str = None) -> None:
+    def __init__(self, dir: Path) -> None:
         self.dir = Path(dir)
-        self.year = year
-        self.genre = genre
-        self.artist = artist
-        self.album = album
 
+        paths = [path for path in dir.iterdir() if is_valid_file(path)]
+        tracks_checked = 0
 
-def get_album_stats(dir: Path) -> AlbumDirStats:
-    resp = AlbumDirStats(dir)
-    paths = [path for path in dir.iterdir() if is_valid_file(path)]
-    tracks_checked = 0
-    for path in paths:
-        track = TinyTag.get(path)
+        for path in paths:
+            track = TinyTag.get(path)
 
-        for key in ("year", "genre", "album", "artist"):
-            if getattr(resp, key, None) is None:
-                value = getattr(track, key)
-                if key == "artist":
-                    value = getattr(track, "albumartist") or value
-                if value is not None:
-                    setattr(resp, key, str(value or "").replace("/", "-") or None)
+            for key in self.keys:
+                if getattr(self, key, None) is None:
+                    value = getattr(track, key)
+                    if key == "artist":
+                        value = getattr(track, "albumartist") or value
+                    if value is not None:
+                        setattr(self, key, str(value or "").replace("/", "-") or None)
 
-        tracks_checked += 1
-        if (resp.year and resp.genre and resp.album and resp.artist) or (tracks_checked >= 10):
-            return resp
-
-    return resp
+            tracks_checked += 1
+            if (self.year and self.genre and self.album and self.artist) or (tracks_checked >= 10):
+                break
+        for key in self.keys:
+            if getattr(self, key, None) is None:
+                setattr(self, key, None)
 
 
 def sort(dir: Path, root_dir: Path = None, *, errs: list[tuple[str, str]] = None) -> None:
+    r"""Sorts Albums in a directory to the root directory
+
+    Format: <genre>/<artist>/<year>. <album>
+
+    For example:
+        * `./Symphonies Of Doom [1985]` → `./Power Metal/Blind Guardian/1985. Symphonies Of Doom`
+    """
     if root_dir is None:
         root_dir = dir.resolve()
 
+    # Recursively iterate through subdirectories
     for path in dir.iterdir():
         if is_valid_dir(path):
             sort(path, root_dir, errs=errs)
 
+    # Actual sorting
     if is_album_directory(dir):
-        stats = get_album_stats(dir)
+        stats = AlbumStats(dir)
 
+        # Define the name of the new directory
         genre = stats.genre if (stats.genre and stats.genre != "Other") else "UNKNOWN_GENRE"
         artist = stats.artist or "UNKNOWN_ARTIST"
         album = stats.album or "Singles"
@@ -98,13 +107,15 @@ def sort(dir: Path, root_dir: Path = None, *, errs: list[tuple[str, str]] = None
         genre, artist, album = fix_new_paths(genre, artist, album)
         print(genre, artist, album)
 
+        # Create the new directory's parent
         target_dir = root_dir / genre / artist
         target_dir.mkdir(parents=True, exist_ok=True)
-        target_dir /= album
 
+        # Move into the new directory
         try:
-            dir.rename(target_dir)
+            dir.rename(target_dir / album)
         except FileExistsError as err:
+            # FileExistsError is raised whenever duplicate albums exist
             print(err)
             if errs is not None:
                 errs.append((artist, album))
@@ -118,7 +129,7 @@ def sort(dir: Path, root_dir: Path = None, *, errs: list[tuple[str, str]] = None
 
 
 def cleanup(dir: Path) -> None:
-    """Deletes all empty directories. 
+    """Recursively deletes all empty directories. 
 
     This assumes that, like on Windows, non-empty directories cannot be deleted.
     """
@@ -158,6 +169,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    # It is awfully convenient to catch errors.
     try:
         main()
     except Exception as e:
