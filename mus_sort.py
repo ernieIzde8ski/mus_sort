@@ -54,6 +54,10 @@ class AlbumStats:
 
     def __init__(self, dir: Path) -> None:
         self.dir = Path(dir)
+        self.year = None
+        self.genre = None
+        self.artist = None
+        self.album = None
 
         paths = [path for path in dir.iterdir() if is_valid_file(path)]
         tracks_checked = 0
@@ -72,9 +76,6 @@ class AlbumStats:
             tracks_checked += 1
             if (self.year and self.genre and self.album and self.artist) or (tracks_checked >= 10):
                 break
-        for key in self.keys:
-            if getattr(self, key, None) is None:
-                setattr(self, key, None)
 
 
 def sort(dir: Path, root_dir: Path = None, *, errs: list[tuple[str, str]] = None) -> None:
