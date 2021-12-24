@@ -23,12 +23,15 @@ def is_album_directory(dir: Path) -> bool:
     return False
 
 
-replacements = [(": ", " - "), ]
+replacements = (": ", " - "), (":", ";"), ("\"", "'"), ("\\", ""), ("/", ""), ("|", "")
 
 
 def fix_new_path(name: str) -> str:
     """Shortens a string & ensures it will not break as a Windows path name"""
-    return textwrap.fill(name.strip(), width=50, placeholder="(...)", max_lines=1).replace(": ", " - ").replace(":", ";").replace("\"", "'").replace("\\", "").replace("/", "").replace("|", "")
+    resp = textwrap.fill(name.strip(), width=50, placeholder="(...)", max_lines=1)
+    for r1, r2 in replacements:
+        resp = resp.replace(r1, r2)
+    return resp
 
 
 def fix_new_paths(*names: str) -> Generator[str, None, None]:
