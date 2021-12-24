@@ -56,16 +56,20 @@ class AlbumDirStats:
 def get_album_stats(dir: Path) -> AlbumDirStats:
     resp = AlbumDirStats(dir)
     paths = [path for path in dir.iterdir() if is_valid_file(path)]
-
+    tracks_checked = 0
     for path in paths:
         track = TinyTag.get(path)
 
-        for attr in ("year", "genre", "album", "artist"):
-            if getattr(resp, attr, None) is None:
-                if (_attr := getattr(track, attr)) is not None:
-                    setattr(resp, attr, str(_attr).replace("/", "-") or None)
+        for key in ("year", "genre", "album", "artist"):
+            if getattr(resp, key, None) is None:
+                value = getattr(track, key)
+                if key == "artist":
+                    value = getattr(track, "albumartist") or value
+                if value is not None:
+                    setattr(resp, key, str(value or "").replace("/", "-") or None)
 
-        if resp.year and resp.genre and resp.album and resp.artist:
+        tracks_checked += 1
+        if (resp.year and resp.genre and resp.album and resp.artist) or (tracks_checked >= 10):
             return resp
 
     return resp
@@ -90,7 +94,7 @@ def sort(dir: Path, root_dir: Path = None, *, errs: list[tuple[str, str]] = None
 
         genre, artist, album = fix_new_paths(genre, artist, album)
         print(genre, artist, album)
-        
+
         target_dir = root_dir / genre / artist
         target_dir.mkdir(parents=True, exist_ok=True)
         target_dir /= album
