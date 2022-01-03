@@ -25,7 +25,7 @@ def is_album_directory(dir: Path) -> bool:
     return any(item.suffix.lower() in accepted_files for item in dir.iterdir())
 
 
-replacements = (": ", " - "), (":", ";"), ("\"", "'"), ("\\", ""), ("/", ""), ("|", "")
+replacements: tuple[tuple[str, str], ...] = (": ", " - "), (":", ";"), ("\"", "'"), ("\\", ""), ("/", ""), ("|", ""), ("*", "-")
 
 
 def fix_new_path(name: str) -> str:
