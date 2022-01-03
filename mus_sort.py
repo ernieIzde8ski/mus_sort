@@ -22,10 +22,7 @@ def is_album_directory(dir: Path) -> bool:
     """Verifies that a directory contains music"""
     if not dir.is_dir():
         raise ValueError(f"Argument {dir} is not a directory")
-    for item in dir.iterdir():
-        if item.suffix.lower() in accepted_files:
-            return True
-    return False
+    return any(item.suffix.lower() in accepted_files for item in dir.iterdir())
 
 
 replacements = (": ", " - "), (":", ";"), ("\"", "'"), ("\\", ""), ("/", ""), ("|", "")
@@ -96,37 +93,38 @@ def sort(dir: Path, root_dir: Path = None, *, errs: list[tuple[str, str]] = None
 
     # Actual sorting
     if is_album_directory(dir):
-        stats = AlbumStats(dir)
+        rename(dir, root_dir, errs)
 
-        # Define the name of the new directory
-        genre = stats.genre if (stats.genre and stats.genre != "Other") else "UNKNOWN_GENRE"
-        artist = stats.artist or "UNKNOWN_ARTIST"
-        album = stats.album or "Singles"
-        if stats.year is not None:
-            album = stats.year + ". " + album
+def rename(dir, root_dir, errs):
+    """Renames an Album directory"""
+    stats = AlbumStats(dir)
 
-        genre, artist, album = fix_new_paths(genre, artist, album)
-        print(genre, artist, album)
+    # Define the name of the new directory
+    genre = stats.genre if (stats.genre and stats.genre != "Other") else "UNKNOWN_GENRE"
+    artist = stats.artist or "UNKNOWN_ARTIST"
+    album = stats.album or "Singles"
+    if stats.year is not None:
+        album = stats.year + ". " + album
 
-        # Create the new directory's parent
-        target_dir = root_dir / genre / artist
-        target_dir.mkdir(parents=True, exist_ok=True)
+    genre, artist, album = fix_new_paths(genre, artist, album)
+    print(genre, artist, album)
+
+    # Create the new directory's parent
+    target_dir = root_dir / genre / artist
+    target_dir.mkdir(parents=True, exist_ok=True)
 
         # Move into the new directory
-        try:
-            dir.rename(target_dir / album)
-        except FileExistsError as err:
-            # FileExistsError is raised whenever duplicate albums exist
-            print(err)
-            if errs is not None:
-                errs.append((artist, album))
-        except PermissionError as err:
-            # WinError 5 always occurs when an album is being listened to through MusicBee.
-            if err.winerror == 5 and errs is not None:
-                print(f"Access is denied for album '{artist} - {album}'.")
-                errs.append((artist, album))
-            else:
-                raise err
+    try:
+        dir.rename(target_dir / album)
+    except FileExistsError as err:
+        print(err)
+        if errs is not None:
+            errs.append((artist, album))
+    except PermissionError as err:
+        if err.winerror != 5 or errs is None:
+            raise err
+        print(f"Access is denied for album '{artist} - {album}'.")
+        errs.append((artist, album))
 
 
 def cleanup(dir: Path) -> None:
@@ -162,7 +160,7 @@ def main() -> None:
 
     errors: list[tuple[str, str]] = []
     sort(path, root, errs=errors)
-    if len(errors) > 0:
+    if errors:
         print("\n\n\nErrors occurred for the following albums:")
         for error in errors:
             print(*error)
