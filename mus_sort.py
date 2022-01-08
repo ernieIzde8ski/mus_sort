@@ -30,7 +30,7 @@ replacements: tuple[tuple[str, str], ...] = (": ", " - "), (":", ";"), ("\"", "'
 
 def fix_new_path(name: str) -> str:
     """Shortens a string & ensures it will not break as a Windows path name"""
-    resp = textwrap.fill(name.strip(), width=50, placeholder="(...)", max_lines=1)
+    resp = textwrap.fill(name.strip().split(";")[0], width=50, placeholder="(...)", max_lines=1)
     for r1, r2 in replacements:
         resp = resp.replace(r1, r2)
     return resp
