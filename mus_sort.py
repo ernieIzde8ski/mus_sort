@@ -95,7 +95,7 @@ def sort(dir: Path, root_dir: Path = None, *, errs: list[tuple[str, str]] = None
     if is_album_directory(dir):
         rename(dir, root_dir, errs)
 
-def rename(dir, root_dir, errs):
+def rename(dir: Path, root_dir: Path, errs: list[tuple[str, str]] | None, *, known_genres: dict[str, str] = {}) -> None:
     """Renames an Album directory"""
     stats = AlbumStats(dir)
 
@@ -107,6 +107,10 @@ def rename(dir, root_dir, errs):
         album = stats.year + ". " + album
 
     genre, artist, album = fix_new_paths(genre, artist, album)
+    if artist in known_genres:
+        genre = known_genres[artist]
+    else:
+        known_genres[artist] = genre
     print(genre, artist, album)
 
     # Create the new directory's parent
