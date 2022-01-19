@@ -4,8 +4,22 @@ from typing import Any, Generator, Optional
 
 from tinytag import TinyTag
 
-accepted_files = ('.mp3', '.wav', '.flac', '.aiff', '.aifc', '.aif', '.afc', '.oga', '.ogg', '.opus', '.wma',
-                  '.m4b', '.m4a', '.mp4')
+accepted_files = (
+    ".mp3",
+    ".wav",
+    ".flac",
+    ".aiff",
+    ".aifc",
+    ".aif",
+    ".afc",
+    ".oga",
+    ".ogg",
+    ".opus",
+    ".wma",
+    ".m4b",
+    ".m4a",
+    ".mp4",
+)
 
 
 def is_valid_file(path: Path) -> bool:
@@ -25,7 +39,15 @@ def is_album_directory(dir: Path) -> bool:
     return any(item.suffix.lower() in accepted_files for item in dir.iterdir())
 
 
-replacements: tuple[tuple[str, str], ...] = (": ", " - "), (":", ";"), ("\"", "'"), ("\\", ""), ("/", ""), ("|", ""), ("*", "-")
+replacements: tuple[tuple[str, str], ...] = (
+    (": ", " - "),
+    (":", ";"),
+    ('"', "'"),
+    ("\\", ""),
+    ("/", ""),
+    ("|", ""),
+    ("*", "-"),
+)
 
 
 def fix_new_path(name: str) -> str:
@@ -40,17 +62,21 @@ def fix_new_paths(*names: str) -> Generator[str, None, None]:
     """Alias for calling fix_new_path on multiple items. Returns the same length of items."""
     return (fix_new_path(name) for name in names)
 
+
 def is_int(i: str | None) -> bool:
     """I don't even know anymore. I don't like files. They're bad."""
-    if not i: return False
+    if not i:
+        return False
     try:
         int(i)
         return True
     except (ValueError, TypeError):
         return False
 
+
 class AlbumStats:
     """Contains useful information about an album directory"""
+
     year: Optional[str]
     genre: Optional[str]
     artist: Optional[str]
@@ -63,9 +89,9 @@ class AlbumStats:
         self.artist = None
         self.album = None
 
-        paths = [path for path in dir.iterdir() if is_valid_file(path)]
+        self.paths = [path for path in dir.iterdir() if is_valid_file(path)]
 
-        for tracks_checked, path in enumerate(paths):
+        for tracks_checked, path in enumerate(self.paths):
             track = TinyTag.get(path)
 
             for key in self.keys:
@@ -102,6 +128,7 @@ def sort(dir: Path, root_dir: Path = None, *, errs: list[tuple[str, str]] = None
     if is_album_directory(dir):
         rename(dir, root_dir, errs)
 
+
 def rename(dir: Path, root_dir: Path, errs: list[tuple[str, str]] | None, *, known_genres: dict[str, str] = {}) -> None:
     """Renames an Album directory"""
     stats = AlbumStats(dir)
@@ -124,7 +151,7 @@ def rename(dir: Path, root_dir: Path, errs: list[tuple[str, str]] | None, *, kno
     target_dir = root_dir / genre / artist
     target_dir.mkdir(parents=True, exist_ok=True)
 
-        # Move into the new directory
+    # Move into the new directory
     try:
         dir.rename(target_dir / album)
     except FileExistsError as err:
@@ -139,7 +166,7 @@ def rename(dir: Path, root_dir: Path, errs: list[tuple[str, str]] | None, *, kno
 
 
 def cleanup(dir: Path) -> None:
-    """Recursively deletes all empty directories. 
+    """Recursively deletes all empty directories.
 
     This assumes that, like on Windows, non-empty directories cannot be deleted.
     """
