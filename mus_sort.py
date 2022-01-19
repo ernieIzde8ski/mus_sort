@@ -1,6 +1,6 @@
 import textwrap
 from pathlib import Path
-from typing import Generator, Optional
+from typing import Any, Generator, Optional
 
 from tinytag import TinyTag
 
@@ -40,6 +40,14 @@ def fix_new_paths(*names: str) -> Generator[str, None, None]:
     """Alias for calling fix_new_path on multiple items. Returns the same length of items."""
     return (fix_new_path(name) for name in names)
 
+def is_int(i: str | None) -> bool:
+    """I don't even know anymore. I don't like files. They're bad."""
+    if not i: return False
+    try:
+        int(i)
+        return True
+    except (ValueError, TypeError):
+        return False
 
 class AlbumStats:
     """Contains useful information about an album directory"""
@@ -65,6 +73,8 @@ class AlbumStats:
                     value = getattr(track, key)
                     if key == "artist":
                         value = getattr(track, "albumartist") or value
+                    elif key == "year" and is_int(value):
+                        value = value[:4]
                     if value is not None:
                         setattr(self, key, str(value or "").replace("/", "-") or None)
 
