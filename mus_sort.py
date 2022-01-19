@@ -50,16 +50,14 @@ class AlbumStats:
     keys = ("year", "genre", "album", "artist")
 
     def __init__(self, dir: Path) -> None:
-        self.dir = Path(dir)
         self.year = None
         self.genre = None
         self.artist = None
         self.album = None
 
         paths = [path for path in dir.iterdir() if is_valid_file(path)]
-        tracks_checked = 0
 
-        for path in paths:
+        for tracks_checked, path in enumerate(paths):
             track = TinyTag.get(path)
 
             for key in self.keys:
@@ -70,7 +68,6 @@ class AlbumStats:
                     if value is not None:
                         setattr(self, key, str(value or "").replace("/", "-") or None)
 
-            tracks_checked += 1
             if (self.year and self.genre and self.album and self.artist) or (tracks_checked >= 10):
                 break
 
