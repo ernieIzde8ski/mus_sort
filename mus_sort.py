@@ -64,6 +64,7 @@ replacements: tuple[tuple[str, str], ...] = (
     ("/", ""),
     ("|", ""),
     ("*", "-"),
+    ("?", "❓"),
 )
 
 
@@ -146,13 +147,14 @@ class AlbumStats:
                         self.rename_file(path, TinyTag.get(path))
             except Exception as err:
                 print(err)
-                track
-                errs.append((err.__class__.__name__, str(track)))
+                p = self.dir.as_posix() if isinstance(track, Generator) else track[0].as_posix()
+                errs.append((err.__class__.__name__, p))
 
     @staticmethod
     def rename_file(p: Path, t: TinyTag) -> None:
         p = p.resolve()
-        target = p / ".." / fix_new_path(f"{(t.track or '').zfill(2)}. {t.title}{p.suffix}")
+        target = f"{(t.track or '').zfill(2)}. {t.title}"
+        target = p / ".." / (fix_new_path(target) + p.suffix)
         if p.name != target.name:
             print(f"{p.resolve().as_posix()} -> {target.name}")
             p.rename(target)
@@ -265,7 +267,7 @@ def main() -> None:
     errors: Errors = []
     sort_root_dir(path, root, errs=errors, **kwargs)
     if errors:
-        print("\n\n\nErrors occurred for the following albums:")
+        print("\n\n\nErrors occurred for the following paths:")
         for error in errors:
             print(*error)
 
