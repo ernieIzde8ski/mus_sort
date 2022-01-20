@@ -1,6 +1,6 @@
 import textwrap
 from pathlib import Path
-from typing import Generator, Optional, TypeVar
+from typing import Generator, Optional
 
 from tinytag import TinyTag
 
@@ -22,8 +22,9 @@ accepted_files = (
 )
 
 
-MAIN_PARAMS = None, None, None, None, None, None, "remove_empty", "rename_folders"
+MAIN_PARAMS = None, None, None, None, None, "rename_files", "remove_empty", "rename_dirs"
 
+Errors = list[tuple[str, str]]
 Param = str
 
 
@@ -105,10 +106,13 @@ class AlbumStats:
         self.artist = None
         self.album = None
 
-        self.paths = [path for path in dir.iterdir() if is_valid_file(path)]
+        self.dir = dir
+        paths = (path for path in dir.iterdir() if is_valid_file(path))
+        self.tracks: list[tuple[Path, TinyTag] | Generator[Path, None, None]] = []
 
-        for tracks_checked, path in enumerate(self.paths):
+        for i, path in enumerate(paths):
             track = TinyTag.get(path)
+            self.tracks.append((path, track))
 
             for key in self.keys:
                 if getattr(self, key, None) is None:
@@ -120,8 +124,38 @@ class AlbumStats:
                     if value is not None:
                         setattr(self, key, str(value or "").replace("/", "-") or None)
 
-            if (self.year and self.genre and self.album and self.artist) or (tracks_checked >= 10):
+            if (self.year and self.genre and self.album and self.artist) or (i >= 10):
                 break
+
+        self.tracks.append(paths)
+
+    def reorganize(self, errs: Errors) -> None:
+        self.reorganize_jpegs()
+        self.reorganize_files(errs)
+
+    def reorganize_jpegs(self) -> None:
+        pass
+
+    def reorganize_files(self, errs: Errors) -> None:
+        for track in self.tracks:
+            try:
+                if isinstance(track, tuple):
+                    self.rename_file(*track)
+                else:
+                    for path in track:
+                        self.rename_file(path, TinyTag.get(path))
+            except Exception as err:
+                print(err)
+                track
+                errs.append((err.__class__.__name__, str(track)))
+
+    @staticmethod
+    def rename_file(p: Path, t: TinyTag) -> None:
+        p = p.resolve()
+        target = p / ".." / fix_new_path(f"{(t.track or '').zfill(2)}. {t.title}{p.suffix}")
+        if p.name != target.name:
+            print(f"{p.resolve().as_posix()} -> {target.name}")
+            p.rename(target)
 
 
 def sort_root_dir(dir: Path, root_dir: Path = None, *, remove_empty: bool, **kwargs) -> None:
@@ -135,27 +169,32 @@ def sort_root_dir(dir: Path, root_dir: Path = None, *, remove_empty: bool, **kwa
     if root_dir is None:
         root_dir = dir.resolve()
 
-    _sort_dir(dir, root_dir, **kwargs)
+    if kwargs["rename_files"] or kwargs["rename_dirs"]:
+        _sort_dir(dir, root_dir, **kwargs)
 
     if remove_empty:
         cleanup(root_dir)
 
 
-def _sort_dir(dir: Path, root_dir: Path, *, errs: list[tuple[str, str]] = None, rename_folders: bool) -> None:
-    """Function called by sort_root_dir. Probably shouldn't be called directly."""
+def _sort_dir(dir: Path, root_dir: Path, *, errs: Errors, rename_dirs: bool, rename_files: bool) -> None:
+    """Function called by sort_root_dir. Probably shouldn't be called directly elsewhere."""
     # Recursively iterate through subdirectories
     for path in dir.iterdir():
         if is_valid_dir(path):
-            _sort_dir(path, root_dir, errs=errs, rename_folders=rename_folders)
+            _sort_dir(path, root_dir, errs=errs, rename_dirs=rename_dirs, rename_files=rename_files)
 
     # Actual sorting
-    if rename_folders and is_album_directory(dir):
-        rename(dir, root_dir, errs)
+    if is_album_directory(dir):
+        album = AlbumStats(dir)
+        if rename_dirs:
+            rename(album, root_dir, errs)
+        if rename_files:
+            album.reorganize_files(errs)
 
 
-def rename(dir: Path, root_dir: Path, errs: list[tuple[str, str]] | None, *, known_genres: dict[str, str] = {}) -> None:
+def rename(stats: AlbumStats, root_dir: Path, errs: Errors, *, known_genres: dict[str, str] = {}) -> None:
     """Renames an Album directory"""
-    stats = AlbumStats(dir)
+    print(known_genres)
 
     # Define the name of the new directory
     genre = stats.genre if (stats.genre and stats.genre != "Other") else "UNKNOWN_GENRE"
@@ -223,7 +262,7 @@ def main() -> None:
 
     kwargs = get_params("Mode? ", MAIN_PARAMS)
     print(kwargs)
-    errors: list[tuple[str, str]] = []
+    errors: Errors = []
     sort_root_dir(path, root, errs=errors, **kwargs)
     if errors:
         print("\n\n\nErrors occurred for the following albums:")
