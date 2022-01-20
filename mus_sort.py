@@ -1,6 +1,6 @@
 import textwrap
 from pathlib import Path
-from typing import Any, Generator, Optional
+from typing import Generator, Optional, TypeVar
 
 from tinytag import TinyTag
 
@@ -20,6 +20,22 @@ accepted_files = (
     ".m4a",
     ".mp4",
 )
+
+
+MAIN_PARAMS = None, None, None, None, None, None, "remove_empty", "rename_folders"
+
+Param = str
+
+
+def get_params(display: str, params_tuple: tuple[None | Param, ...] = MAIN_PARAMS) -> dict[Param, bool]:
+    try:
+        selections = int(input(display))
+    except ValueError:
+        raise TypeError("Please provide an integer.")
+    _len = len(params_tuple)
+    # Convert into binary with a fixed length.
+    selections = bin(selections)[2:].zfill(_len)[:_len]
+    return {param: (selections[index] == "1") for index, param in enumerate(params_tuple) if param is not None}
 
 
 def is_valid_file(path: Path) -> bool:
@@ -108,8 +124,8 @@ class AlbumStats:
                 break
 
 
-def sort(dir: Path, root_dir: Path = None, *, errs: list[tuple[str, str]] = None) -> None:
-    r"""Sorts Albums in a directory to the root directory
+def sort_root_dir(dir: Path, root_dir: Path = None, *, remove_empty: bool, **kwargs) -> None:
+    r"""Sorts Albums in some directory to the root directory
 
     Format: <genre>/<artist>/<year>. <album>
 
@@ -119,13 +135,21 @@ def sort(dir: Path, root_dir: Path = None, *, errs: list[tuple[str, str]] = None
     if root_dir is None:
         root_dir = dir.resolve()
 
+    _sort_dir(dir, root_dir, **kwargs)
+
+    if remove_empty:
+        cleanup(root_dir)
+
+
+def _sort_dir(dir: Path, root_dir: Path, *, errs: list[tuple[str, str]] = None, rename_folders: bool) -> None:
+    """Function called by sort_root_dir. Probably shouldn't be called directly."""
     # Recursively iterate through subdirectories
     for path in dir.iterdir():
         if is_valid_dir(path):
-            sort(path, root_dir, errs=errs)
+            _sort_dir(path, root_dir, errs=errs, rename_folders=rename_folders)
 
     # Actual sorting
-    if is_album_directory(dir):
+    if rename_folders and is_album_directory(dir):
         rename(dir, root_dir, errs)
 
 
@@ -180,6 +204,7 @@ def cleanup(dir: Path) -> None:
         pass
 
 
+# TODO: Split into smaller functions. Also, *definitely* split rename into smaller functions.
 def main() -> None:
     """Asks for input before running the sort and cleanup functions.
 
@@ -189,20 +214,21 @@ def main() -> None:
     dirs = [str(path) for path in Path(".").iterdir() if is_valid_dir(path)]
     print(f"Subdirectories here: {', '.join(dirs)}")
 
-    path = input("Path?  ")
+    path = input("Path? ")
     root = Path(".").resolve() if path.startswith("./") else None
     path = Path(path)
 
     if not is_valid_dir(path):
-        raise ValueError(f"Path {path.resolve()} is not a valid directory")
+        raise ValueError(f"Path {path.resolve()} is not a valid directory!")
 
+    kwargs = get_params("Mode? ", MAIN_PARAMS)
+    print(kwargs)
     errors: list[tuple[str, str]] = []
-    sort(path, root, errs=errors)
+    sort_root_dir(path, root, errs=errors, **kwargs)
     if errors:
         print("\n\n\nErrors occurred for the following albums:")
         for error in errors:
             print(*error)
-    cleanup(path)
 
 
 if __name__ == "__main__":
