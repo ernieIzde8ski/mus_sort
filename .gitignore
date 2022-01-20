@@ -2,3 +2,4 @@
 # folder, so I don't want subfolders present at all
 */
 .EXISTS
+desktop.ini
