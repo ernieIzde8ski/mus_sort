@@ -120,6 +120,7 @@ class AlbumStats:
         self.album = None
 
         self.dir = dir
+        self.reset = False
         paths = (path for path in dir.iterdir() if is_valid_file(path))
         self.tracks: list[tuple[Path, TinyTag] | Generator[Path, None, None]] = []
 
@@ -143,6 +144,8 @@ class AlbumStats:
         self.tracks.append(paths)
 
     def reorganize(self, errs: Errors) -> None:
+        if self.reset:
+            self.tracks = list(((path for path in self.dir.iterdir() if is_valid_file(path)),))
         self.reorganize_jpegs()
         self.reorganize_files(errs)
 
@@ -242,7 +245,8 @@ def rename(stats: AlbumStats, root_dir: Path, errs: Errors) -> None:
 
     # Move into the new directory
     try:
-        stats.dir.rename(target / album)
+        stats.dir = stats.dir.rename(target / album)
+        stats.reset = True
     except FileExistsError as err:
         print(err)
         if errs is not None:
