@@ -22,7 +22,7 @@ accepted_files = (
 )
 
 
-MAIN_PARAMS = None, None, None, None, None, "rename_files", "remove_empty", "rename_dirs"
+MAIN_PARAMS = None, "rename_files", "remove_empty", "rename_dirs"
 
 Errors = list[tuple[str, str]]
 Param = str
@@ -274,12 +274,15 @@ def ask_for_paths(modes: tuple[str | None, ...]) -> tuple[Params, Path | None, P
     print(f"Subdirectories here: {', '.join(dirs)}")
     print(f"Modes: {', '.join(m or 'None' for m in modes)}")
 
+    print()
     print("Default path: '.'")
     print("Default mode: '3'")
 
+    print()
     paths = get_paths("Path?  ")
     mode = get_params("Mode?  ", modes, default="3")
 
+    print()
     print(mode)
     return mode, *paths
 
@@ -300,8 +303,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    # It is awfully convenient to catch errors.
-    try:
-        main()
-    except Exception as e:
-        print(e.__class__.__name__ + ":", e)
+    main()
