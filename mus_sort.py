@@ -70,7 +70,7 @@ replacements: tuple[tuple[str, str], ...] = (
 
 def fix_new_path(name: str) -> str:
     """Shortens a string & ensures it will not break as a Windows path name"""
-    resp = textwrap.fill(name.strip().split(";")[0].split("\\")[0], width=50, placeholder="(...)", max_lines=1)
+    resp = textwrap.fill(name.strip().split(";")[0].split("\\")[0], width=50, placeholder="(…)", max_lines=1)
     for r1, r2 in replacements:
         resp = resp.replace(r1, r2)
     return resp
@@ -135,7 +135,18 @@ class AlbumStats:
         self.reorganize_files(errs)
 
     def reorganize_jpegs(self) -> None:
-        pass
+        cover = self.dir / "Cover.jpg"
+        folder = self.dir / "Folder.jpg"
+        cover = cover, cover.exists()
+        folder = folder, folder.exists()
+        print(cover, folder)
+        if cover[1]:
+            if folder[1]:
+                print(f"DELETE {cover[0].as_posix()}")
+                cover[0].unlink(missing_ok=True)
+            else:
+                print(f"RENAME {cover[0].as_posix()} -> {folder[0].as_posix()}")
+                cover[0].rename(folder[0])
 
     def reorganize_files(self, errs: Errors) -> None:
         for track in self.tracks:
@@ -191,7 +202,7 @@ def _sort_dir(dir: Path, root_dir: Path, *, errs: Errors, rename_dirs: bool, ren
         if rename_dirs:
             rename(album, root_dir, errs)
         if rename_files:
-            album.reorganize_files(errs)
+            album.reorganize(errs)
 
 
 def rename(stats: AlbumStats, root_dir: Path, errs: Errors, *, known_genres: dict[str, str] = {}) -> None:
