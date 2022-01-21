@@ -175,7 +175,7 @@ class AlbumStats:
     @staticmethod
     def rename_file(p: Path, t: TinyTag) -> None:
         p = p.resolve()
-        target = f"{(t.track or '').zfill(2)}. {t.title}"
+        target = f"{(t.track or '').zfill(2)} - {t.title}"
         target = p / ".." / (fix_new_path(target) + p.suffix)
         if p.name != target.name:
             print(f"{p.resolve().as_posix()} -> {target.name}")
@@ -185,10 +185,10 @@ class AlbumStats:
 def sort_root_dir(dir: Path, root_dir: Path = None, *, remove_empty: bool, **kwargs) -> None:
     r"""Sorts Albums in some directory to the root directory
 
-    Format: <genre>/<artist>/<year>. <album>
+    Format: <genre>/<artist>/[<year> - ]<album>
 
     For example:
-        * `./Symphonies Of Doom [1985]` → `./Power Metal/Blind Guardian/1985. Symphonies Of Doom`
+        * `./Symphonies Of Doom [1985]` → `./Power Metal/Blind Guardian/1985 - Symphonies Of Doom`
     """
     if root_dir is None:
         root_dir = dir.resolve()
@@ -221,7 +221,7 @@ def new_dir(root: Path, stats: AlbumStats, *, known_genres: dict[str, str] = {})
     artist = stats.artist or "UNKNOWN_ARTIST"
     album = stats.album or "Singles"
     if stats.year is not None:
-        album = stats.year + ". " + album
+        album = f"{stats.year} - {album}"
 
     genre, artist, album = fix_new_paths(genre, artist, album)
     if artist in known_genres:
