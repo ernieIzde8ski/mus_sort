@@ -26,17 +26,29 @@ MAIN_PARAMS = None, None, None, None, None, "rename_files", "remove_empty", "ren
 
 Errors = list[tuple[str, str]]
 Param = str
+Params = dict[Param, bool]
 
 
-def get_params(display: str, params_tuple: tuple[None | Param, ...] = MAIN_PARAMS) -> dict[Param, bool]:
+def get_params(display: str, params_tuple: tuple[None | Param, ...] = MAIN_PARAMS, *, default: str | None) -> Params:
     try:
-        selections = int(input(display))
+        selections = int(input(display) or default or "")
     except ValueError:
         raise TypeError("Please provide an integer.")
     _len = len(params_tuple)
     # Convert into binary with a fixed length.
     selections = bin(selections)[2:].zfill(_len)[:_len]
     return {param: (selections[index] == "1") for index, param in enumerate(params_tuple) if param is not None}
+
+
+def get_paths(display: str) -> tuple[Path | None, Path]:
+    path = input(display)
+
+    root = Path(".").resolve() if path.startswith("./") else None
+    path = Path(path)
+    if not is_valid_dir(path):
+        raise ValueError(f"Path {path.resolve()} is not a valid directory!")
+
+    return root, path
 
 
 def is_valid_file(path: Path) -> bool:
@@ -139,7 +151,6 @@ class AlbumStats:
         folder = self.dir / "Folder.jpg"
         cover = cover, cover.exists()
         folder = folder, folder.exists()
-        print(cover, folder)
         if cover[1]:
             if folder[1]:
                 print(f"DELETE {cover[0].as_posix()}")
@@ -205,11 +216,7 @@ def _sort_dir(dir: Path, root_dir: Path, *, errs: Errors, rename_dirs: bool, ren
             album.reorganize(errs)
 
 
-def rename(stats: AlbumStats, root_dir: Path, errs: Errors, *, known_genres: dict[str, str] = {}) -> None:
-    """Renames an Album directory"""
-    print(known_genres)
-
-    # Define the name of the new directory
+def new_dir(root: Path, stats: AlbumStats, *, known_genres: dict[str, str] = {}) -> tuple[Path, str, str]:
     genre = stats.genre if (stats.genre and stats.genre != "Other") else "UNKNOWN_GENRE"
     artist = stats.artist or "UNKNOWN_ARTIST"
     album = stats.album or "Singles"
@@ -221,15 +228,21 @@ def rename(stats: AlbumStats, root_dir: Path, errs: Errors, *, known_genres: dic
         genre = known_genres[artist]
     else:
         known_genres[artist] = genre
-    print(genre, artist, album)
+
+    return root / genre / artist, artist, album
+
+
+def rename(stats: AlbumStats, root_dir: Path, errs: Errors) -> None:
+    """Renames an Album directory"""
+    # Define new directory
+    target, artist, album = new_dir(root_dir, stats)
 
     # Create the new directory's parent
-    target_dir = root_dir / genre / artist
-    target_dir.mkdir(parents=True, exist_ok=True)
+    target.mkdir(parents=True, exist_ok=True)
 
     # Move into the new directory
     try:
-        dir.rename(target_dir / album)
+        stats.dir.rename(target / album)
     except FileExistsError as err:
         print(err)
         if errs is not None:
@@ -256,25 +269,28 @@ def cleanup(dir: Path) -> None:
         pass
 
 
-# TODO: Split into smaller functions. Also, *definitely* split rename into smaller functions.
+def ask_for_paths(modes: tuple[str | None, ...]) -> tuple[Params, Path | None, Path]:
+    dirs = [str(path) for path in Path(".").iterdir() if is_valid_dir(path)]
+    print(f"Subdirectories here: {', '.join(dirs)}")
+    print(f"Modes: {', '.join(m or 'None' for m in modes)}")
+
+    print("Default path: '.'")
+    print("Default mode: '3'")
+
+    paths = get_paths("Path?  ")
+    mode = get_params("Mode?  ", modes, default="3")
+
+    print(mode)
+    return mode, *paths
+
+
 def main() -> None:
     """Asks for input before running the sort and cleanup functions.
 
     If no path is given, assumes current path. If path given starts with './', set root directory to current path
     and format from given path.
     """
-    dirs = [str(path) for path in Path(".").iterdir() if is_valid_dir(path)]
-    print(f"Subdirectories here: {', '.join(dirs)}")
-
-    path = input("Path? ")
-    root = Path(".").resolve() if path.startswith("./") else None
-    path = Path(path)
-
-    if not is_valid_dir(path):
-        raise ValueError(f"Path {path.resolve()} is not a valid directory!")
-
-    kwargs = get_params("Mode? ", MAIN_PARAMS)
-    print(kwargs)
+    kwargs, root, path = ask_for_paths(MAIN_PARAMS)
     errors: Errors = []
     sort_root_dir(path, root, errs=errors, **kwargs)
     if errors:
