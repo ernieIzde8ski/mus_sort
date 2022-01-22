@@ -63,8 +63,8 @@ def request_mode(display: str = "Mode? ", modes: tuple[None | Modum, ...] = MODE
     return {modum: (selections[index] == "1") for index, modum in enumerate(modes) if modum is not None}
 
 
-def request_dirs(display: str) -> tuple[Path | None, Path]:
-    path = input(display)
+def request_dirs(display: str, default: str = "") -> tuple[Path | None, Path]:
+    path = input(display) or default
 
     root = Path(".").resolve() if path.startswith("./") else None
     path = Path(path)
@@ -312,14 +312,14 @@ def request_opts(modes: tuple[str | None, ...]) -> tuple[Mode, Path | None, Path
     print(f"Subdirectories here: {', '.join(dirs)}")
     print(f"Modes: {', '.join(m or 'None' for m in modes)}")
 
-    # TODO: Actually define a default
     print()
-    print("Default path: '.'")
-    print("Default mode: '3'")
+    p, m = ".", "3"
+    print(f"Default path: '{p}'")
+    print(f"Default mode: '{m}'")
 
     print()
-    dirs = request_dirs("Path?  ")
-    mode = request_mode("Mode?  ", modes, default="3")
+    dirs = request_dirs("Path?  ", default=p)
+    mode = request_mode("Mode?  ", modes, default=m)
 
     print()
     print(f"{mode=}")
