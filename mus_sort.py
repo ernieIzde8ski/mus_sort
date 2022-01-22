@@ -45,7 +45,7 @@ accepted_suffixes = (
 )
 
 
-MODES = "remove_duplicate_files", "rename_files", "remove_empty", "rename_dirs"
+MODES = "remove_duplicates", "rename_files", "remove_empty", "rename_dirs"
 
 Errors = list[tuple[str | None, ...]]
 Modum = str
@@ -172,11 +172,11 @@ class MusicFolder:
 
         self.tracks.append(paths)
 
-    def reorganize(self, errs: Errors, remove_duplicate_files: bool) -> None:
+    def reorganize(self, errs: Errors, remove_duplicates: bool) -> None:
         if self.reset:
             self.tracks = list(((path for path in self.dir.iterdir() if is_music(path)),))
         self.reorganize_jpegs()
-        self.reorganize_files(errs, remove_duplicate_files=remove_duplicate_files)
+        self.reorganize_files(errs, remove_duplicates=remove_duplicates)
 
     def reorganize_jpegs(self) -> None:
         cover = self.dir / "Cover.jpg"
@@ -191,14 +191,14 @@ class MusicFolder:
                 print(f"RENAME {cover[0].as_posix()} -> {folder[0].as_posix()}")
                 cover[0].rename(folder[0])
 
-    def reorganize_files(self, errs: Errors, remove_duplicate_files=False) -> None:
+    def reorganize_files(self, errs: Errors, remove_duplicates=False) -> None:
         for track in self.tracks:
             try:
                 if isinstance(track, tuple):
-                    self.rename_file(*track, rm_on_exists=remove_duplicate_files)
+                    self.rename_file(*track, rm_on_exists=remove_duplicates)
                 else:
                     for path in track:
-                        self.rename_file(path, TinyTag.get(path), rm_on_exists=remove_duplicate_files)
+                        self.rename_file(path, TinyTag.get(path), rm_on_exists=remove_duplicates)
             except Exception as err:
                 print(err)
                 p = self.dir.as_posix() if isinstance(track, Generator) else track[0].as_posix()
@@ -239,11 +239,13 @@ def sort_root(dir: Path, root: Path = None, *, remove_empty: bool, **kwargs) -> 
 
 
 def _sort_dir(
-    dir: Path, root: Path, *, errs: Errors, rename_dirs: bool, rename_files: bool, remove_duplicate_files: bool
+    dir: Path, root: Path, *, errs: Errors, rename_dirs: bool, rename_files: bool, remove_duplicates: bool
 ) -> None:
     """Function called by sort_root_dir. Probably shouldn't be called directly elsewhere."""
-    # Recursively iterate through subdirectories
+    # Recursively iterate through subdirectories]
+    has_dirs = False
     for path in dir.iterdir():
+        has_dirs = True
         if is_valid_dir(path):
             _sort_dir(
                 path,
@@ -251,7 +253,7 @@ def _sort_dir(
                 errs=errs,
                 rename_dirs=rename_dirs,
                 rename_files=rename_files,
-                remove_duplicate_files=remove_duplicate_files,
+                remove_duplicates=remove_duplicates,
             )
 
     # Actual sorting
@@ -263,10 +265,11 @@ def _sort_dir(
             if errs:
                 errs.append((err.__class__.__name__, dir.as_posix()))
             return
+
         if rename_dirs:
-            rename(folder, root, errs)
+            rename(folder, root, errs, remove_duplicates)
         if rename_files:
-            folder.reorganize(errs, remove_duplicate_files)
+            folder.reorganize(errs, remove_duplicates)
 
 
 def get_target_dir(root: Path, folder: MusicFolder, *, known_genres: dict[str, str] = {}) -> Path:
@@ -286,7 +289,7 @@ def get_target_dir(root: Path, folder: MusicFolder, *, known_genres: dict[str, s
     return root / folder.genre / folder.artist
 
 
-def rename(folder: MusicFolder, root_dir: Path, errs: Errors) -> None:
+def rename(folder: MusicFolder, root_dir: Path, errs: Errors, remove_duplicates: bool) -> None:
     """Renames a music folder"""
     # Define new directory
     target = get_target_dir(root_dir, folder)
@@ -299,9 +302,13 @@ def rename(folder: MusicFolder, root_dir: Path, errs: Errors) -> None:
         folder.reset = True
         print(*((i or "").ljust(20) for i in (folder.genre, folder.artist, folder.album)))
     except FileExistsError as err:
-        print(err)
-        if errs is not None:
+        if errs and not remove_duplicates:
+            print(err)
             errs.append((err.__class__.__name__, folder.artist, folder.album))
+        if remove_duplicates:
+            for i in folder.dir.iterdir():
+                i.unlink()
+            folder.dir.rmdir()
     except PermissionError as err:
         if err.winerror != 5 or errs is None:
             raise err
