@@ -1,10 +1,23 @@
+"""
+Terms as used:
+    Path: A filepath.
+        Music file: A filepath compatible with TinyTag.
+        Directory: A directory.
+            Folder: A directory which contains music files.
+    Request: A function that takes an input from the command line.
+    Mode: A dictionary of sorting actions.
+        Modum: A single Mode.
+        Modes: All available Modums.
+    Options: Selected directories & mode.
+"""
+
 import textwrap
 from pathlib import Path
 from typing import Generator, Optional
 
 from tinytag import TinyTag, TinyTagException
 
-accepted_files = (
+accepted_suffixes = (
     ".mp3",
     ".wav",
     ".flac",
@@ -22,50 +35,49 @@ accepted_files = (
 )
 
 
-MAIN_PARAMS = None, "rename_files", "remove_empty", "rename_dirs"
+MODES = None, "rename_files", "remove_empty", "rename_dirs"
 
 Errors = list[tuple[str | None, ...]]
-Param = str
-Params = dict[Param, bool]
+Modum = str
+Mode = dict[Modum, bool]
 
 
-def get_params(display: str, params_tuple: tuple[None | Param, ...] = MAIN_PARAMS, *, default: str | None) -> Params:
+def request_mode(display: str = "Mode? ", modes: tuple[None | Modum, ...] = MODES, *, default: str = "") -> Mode:
     try:
-        selections = int(input(display) or default or "")
+        selections = int(input(display) or default)
     except ValueError:
         raise TypeError("Please provide an integer.")
-    _len = len(params_tuple)
+    ln = len(modes)
     # Convert into binary with a fixed length.
-    selections = bin(selections)[2:].zfill(_len)[:_len]
-    return {param: (selections[index] == "1") for index, param in enumerate(params_tuple) if param is not None}
+    selections = bin(selections)[2:].zfill(ln)[:ln]
+    return {modum: (selections[index] == "1") for index, modum in enumerate(modes) if modum is not None}
 
 
-def get_paths(display: str) -> tuple[Path | None, Path]:
+def request_dirs(display: str) -> tuple[Path | None, Path]:
     path = input(display)
 
     root = Path(".").resolve() if path.startswith("./") else None
     path = Path(path)
     if not is_valid_dir(path):
-        raise ValueError(f"Path {path.resolve()} is not a valid directory!")
+        raise ValueError(f"Path '{path.resolve()}' is not a valid directory!")
 
     return root, path
 
 
-def is_valid_file(path: Path) -> bool:
+def is_music(path: Path) -> bool:
     """Verifies a path is a music file compatible with TinyTag"""
-    return path.is_file() and path.suffix.lower() in accepted_files
+    return path.is_file() and path.suffix.lower() in accepted_suffixes
 
 
 def is_valid_dir(path: Path) -> bool:
     """Verifies that a path is both a directory and not a git or pycache directory"""
+    # TODO: Extract invalid names into tuple.
     return path.is_dir() and path.name != ".git" and path.name != "__pycache__"
 
 
-def is_album_directory(dir: Path) -> bool:
-    """Verifies that a directory contains music"""
-    if not dir.is_dir():
-        raise ValueError(f"Argument {dir} is not a directory")
-    return any(item.suffix.lower() in accepted_files for item in dir.iterdir())
+def is_music_folder(dir: Path) -> bool:
+    """Verifies that a directory contains music."""
+    return any(item.suffix.lower() in accepted_suffixes for item in dir.iterdir())
 
 
 replacements: tuple[tuple[str, str], ...] = (
@@ -79,20 +91,23 @@ replacements: tuple[tuple[str, str], ...] = (
     ("?", "❓"),
     ("...", "…"),
     (".", ""),
+    ("<", "{"),
+    (">", "}"),
 )
 
 
-def fix_new_path(name: str, *, width: int = 50) -> str:
-    """Shortens a string & ensures it will not break as a Windows path name"""
-    resp = textwrap.fill(name.strip().split(";")[0].split("\\")[0], width=width, placeholder="(…)", max_lines=1)
+def fix_path(name: str, *, width: int = 50) -> str:
+    """Truncates a string & ensures it will not break as a path under Windows."""
+    resp = name.strip().split(";")[0].split("\\")[0]
     for r1, r2 in replacements:
         resp = resp.replace(r1, r2)
+    resp = textwrap.fill(resp, width=width, placeholder="(…)", max_lines=1)
     return resp
 
 
-def fix_new_paths(*names: str) -> Generator[str, None, None]:
-    """Alias for calling fix_new_path on multiple items. Returns the same length of items."""
-    return (fix_new_path(name) for name in names)
+def fix_paths(*names: str) -> Generator[str, None, None]:
+    """Alias for calling fix_path on multiple items. Returns the same length of items."""
+    return (fix_path(name) for name in names)
 
 
 def is_int(i: str | None) -> bool:
@@ -106,8 +121,8 @@ def is_int(i: str | None) -> bool:
         return False
 
 
-class AlbumStats:
-    """Contains useful information about an album directory"""
+class MusicFolder:
+    """Contains only relevant information about a music folder"""
 
     year: Optional[str]
     genre: Optional[str]
@@ -123,7 +138,7 @@ class AlbumStats:
 
         self.dir = dir
         self.reset = False
-        paths = (path for path in dir.iterdir() if is_valid_file(path))
+        paths = (path for path in dir.iterdir() if is_music(path))
         self.tracks: list[tuple[Path, TinyTag] | Generator[Path, None, None]] = []
 
         for i, path in enumerate(paths):
@@ -147,7 +162,7 @@ class AlbumStats:
 
     def reorganize(self, errs: Errors) -> None:
         if self.reset:
-            self.tracks = list(((path for path in self.dir.iterdir() if is_valid_file(path)),))
+            self.tracks = list(((path for path in self.dir.iterdir() if is_music(path)),))
         self.reorganize_jpegs()
         self.reorganize_files(errs)
 
@@ -181,13 +196,13 @@ class AlbumStats:
     def rename_file(p: Path, t: TinyTag) -> None:
         p = p.resolve()
         target = f"{(t.track or '').zfill(2)} - {t.title}"
-        target = p / ".." / (fix_new_path(target) + p.suffix)
+        target = p / ".." / (fix_path(target) + p.suffix)
         if p.name != target.name:
             print(f"{p.resolve().as_posix()} -> {target.name}")
             p.rename(target)
 
 
-def sort_root_dir(dir: Path, root_dir: Path = None, *, remove_empty: bool, **kwargs) -> None:
+def sort_root(dir: Path, root: Path = None, *, remove_empty: bool, **kwargs) -> None:
     r"""Sorts Albums in some directory to the root directory
 
     Format: <genre>/<artist>/[<year> - ]<album>
@@ -195,107 +210,110 @@ def sort_root_dir(dir: Path, root_dir: Path = None, *, remove_empty: bool, **kwa
     For example:
         * `./Symphonies Of Doom [1985]` → `./Power Metal/Blind Guardian/1985 - Symphonies Of Doom`
     """
-    if root_dir is None:
-        root_dir = dir.resolve()
+    if root is None:
+        root = dir.resolve()
 
     if kwargs["rename_files"] or kwargs["rename_dirs"]:
-        _sort_dir(dir, root_dir, **kwargs)
+        _sort_dir(dir, root, **kwargs)
 
     if remove_empty:
-        cleanup(root_dir)
+        cleanup(root)
 
 
-def _sort_dir(dir: Path, root_dir: Path, *, errs: Errors, rename_dirs: bool, rename_files: bool) -> None:
+def _sort_dir(dir: Path, root: Path, *, errs: Errors, rename_dirs: bool, rename_files: bool) -> None:
     """Function called by sort_root_dir. Probably shouldn't be called directly elsewhere."""
     # Recursively iterate through subdirectories
     for path in dir.iterdir():
         if is_valid_dir(path):
-            _sort_dir(path, root_dir, errs=errs, rename_dirs=rename_dirs, rename_files=rename_files)
+            _sort_dir(path, root, errs=errs, rename_dirs=rename_dirs, rename_files=rename_files)
 
     # Actual sorting
-    if is_album_directory(dir):
+    if is_music_folder(dir):
         try:
-            album = AlbumStats(dir)
+            folder = MusicFolder(dir)
         except TinyTagException as err:
             print(err)
             if errs:
                 errs.append((err.__class__.__name__, dir.as_posix()))
             return
         if rename_dirs:
-            rename(album, root_dir, errs)
+            rename(folder, root, errs)
         if rename_files:
-            album.reorganize(errs)
+            folder.reorganize(errs)
 
 
-def get_target_dir(root: Path, stats: AlbumStats, *, known_genres: dict[str, str] = {}) -> tuple[Path, str]:
-    stats.genre = stats.genre if (stats.genre and stats.genre != "Other") else "UNKNOWN_GENRE"
-    stats.artist = stats.artist or "UNKNOWN_ARTIST"
-    album = stats.album or "Singles"
-    if stats.year is not None:
-        album = f"{stats.year} - {album}"
+def get_target_dir(root: Path, folder: MusicFolder, *, known_genres: dict[str, str] = {}) -> Path:
+    """Returns a new target directory and adjusts the properties of folder simultaneously"""
+    folder.genre = folder.genre if (folder.genre and folder.genre != "Other") else "UNKNOWN_GENRE"
+    folder.artist = folder.artist or "UNKNOWN_ARTIST"
+    folder.album = folder.album or "Singles"
+    if folder.year is not None:
+        folder.album = f"{folder.year} - {folder.album}"
 
-    stats.genre, stats.artist, album = fix_new_paths(stats.genre, stats.artist, album)
-    if stats.artist in known_genres:
-        stats.genre = known_genres[stats.artist]
+    folder.genre, folder.artist, folder.album = fix_paths(folder.genre, folder.artist, folder.album)
+    if folder.artist in known_genres:
+        folder.genre = known_genres[folder.artist]
     else:
-        known_genres[stats.artist] = stats.genre
+        known_genres[folder.artist] = folder.genre
 
-    return root / stats.genre / stats.artist, album
+    return root / folder.genre / folder.artist
 
 
-def rename(stats: AlbumStats, root_dir: Path, errs: Errors) -> None:
-    """Renames an Album directory"""
+def rename(folder: MusicFolder, root_dir: Path, errs: Errors) -> None:
+    """Renames a music folder"""
     # Define new directory
-    target, album = get_target_dir(root_dir, stats)
+    target = get_target_dir(root_dir, folder)
     target.mkdir(parents=True, exist_ok=True)
 
     # Move into the new directory
     try:
-        stats.dir = stats.dir.rename(target / album)
-        stats.reset = True
-        print(*((i or "").ljust(20) for i in (stats.genre, stats.artist, album)))
+        # TODO: "Stringly typed" so that I don't have to deal with str() and also can ignore type checker errors.
+        folder.dir = folder.dir.rename(target / str(folder.album))
+        folder.reset = True
+        print(*((i or "").ljust(20) for i in (folder.genre, folder.artist, folder.album)))
     except FileExistsError as err:
         print(err)
         if errs is not None:
-            errs.append((err.__class__.__name__, stats.artist, album))
+            errs.append((err.__class__.__name__, folder.artist, folder.album))
     except PermissionError as err:
         if err.winerror != 5 or errs is None:
             raise err
-        print(f"Access is denied for album '{stats.artist} - {album}'.")
-        errs.append((err.__class__.__name__, stats.artist, album))
+        print(f"Access is denied for album '{folder.artist} - {folder.album}'.")
+        errs.append((err.__class__.__name__, folder.artist, folder.album))
 
 
-def cleanup(dir: Path) -> None:
+def cleanup(root: Path) -> None:
     """Recursively deletes all empty directories.
 
     This assumes that, like on Windows, non-empty directories cannot be deleted.
     """
-    for path in dir.iterdir():
+    for path in root.iterdir():
         if is_valid_dir(path):
             cleanup(path)
 
     try:
-        dir.rmdir()
+        root.rmdir()
     except:
         pass
 
 
-def ask_for_paths(modes: tuple[str | None, ...]) -> tuple[Params, Path | None, Path]:
+def request_opts(modes: tuple[str | None, ...]) -> tuple[Mode, Path | None, Path]:
     dirs = [str(path) for path in Path(".").iterdir() if is_valid_dir(path)]
     print(f"Subdirectories here: {', '.join(dirs)}")
     print(f"Modes: {', '.join(m or 'None' for m in modes)}")
 
+    # TODO: Actually define a default
     print()
     print("Default path: '.'")
     print("Default mode: '3'")
 
     print()
-    paths = get_paths("Path?  ")
-    mode = get_params("Mode?  ", modes, default="3")
+    dirs = request_dirs("Path?  ")
+    mode = request_mode("Mode?  ", modes, default="3")
 
     print()
-    print(mode)
-    return mode, *paths
+    print(f"{mode=}")
+    return mode, *dirs
 
 
 def main() -> None:
@@ -304,9 +322,9 @@ def main() -> None:
     If no path is given, assumes current path. If path given starts with './', set root directory to current path
     and format from given path.
     """
-    kwargs, root, path = ask_for_paths(MAIN_PARAMS)
+    kwargs, root, path = request_opts(MODES)
     errors: Errors = []
-    sort_root_dir(path, root, errs=errors, **kwargs)
+    sort_root(path, root, errs=errors, **kwargs)
     if errors:
         print("\n\n\nErrors occurred for the following paths:")
         for error in errors:
