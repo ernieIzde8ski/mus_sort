@@ -243,9 +243,7 @@ def _sort_dir(
 ) -> None:
     """Function called by sort_root_dir. Probably shouldn't be called directly elsewhere."""
     # Recursively iterate through subdirectories]
-    has_dirs = False
     for path in dir.iterdir():
-        has_dirs = True
         if is_valid_dir(path):
             _sort_dir(
                 path,
