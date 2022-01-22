@@ -82,7 +82,7 @@ replacements: tuple[tuple[str, str], ...] = (
 )
 
 
-def fix_new_path(name: str, *, width: int=50) -> str:
+def fix_new_path(name: str, *, width: int = 50) -> str:
     """Shortens a string & ensures it will not break as a Windows path name"""
     resp = textwrap.fill(name.strip().split(";")[0].split("\\")[0], width=width, placeholder="(…)", max_lines=1)
     for r1, r2 in replacements:
@@ -217,7 +217,7 @@ def _sort_dir(dir: Path, root_dir: Path, *, errs: Errors, rename_dirs: bool, ren
         try:
             album = AlbumStats(dir)
         except TinyTagException as err:
-            print(err.__class__.__name__, err)
+            print(err)
             if errs:
                 errs.append((err.__class__.__name__, dir.as_posix()))
             return
@@ -253,8 +253,7 @@ def rename(stats: AlbumStats, root_dir: Path, errs: Errors) -> None:
     try:
         stats.dir = stats.dir.rename(target / album)
         stats.reset = True
-        log = ((i or "").ljust(20) for i in (stats.genre, stats.artist, album))
-        print(*log, sep="")
+        print(*((i or "").ljust(20) for i in (stats.genre, stats.artist, album)))
     except FileExistsError as err:
         print(err)
         if errs is not None:
@@ -311,7 +310,7 @@ def main() -> None:
     if errors:
         print("\n\n\nErrors occurred for the following paths:")
         for error in errors:
-            print(*error)
+            print(*(err.ljust(15) for err in filter(None, error)))
 
 
 if __name__ == "__main__":
