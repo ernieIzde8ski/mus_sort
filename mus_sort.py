@@ -45,7 +45,7 @@ accepted_suffixes = (
 )
 
 
-MODES = None, "rename_files", "remove_empty", "rename_dirs"
+MODES = "remove_duplicate_files", "rename_files", "remove_empty", "rename_dirs"
 
 Errors = list[tuple[str | None, ...]]
 Modum = str
@@ -170,11 +170,11 @@ class MusicFolder:
 
         self.tracks.append(paths)
 
-    def reorganize(self, errs: Errors) -> None:
+    def reorganize(self, errs: Errors, remove_duplicate_files: bool) -> None:
         if self.reset:
             self.tracks = list(((path for path in self.dir.iterdir() if is_music(path)),))
         self.reorganize_jpegs()
-        self.reorganize_files(errs)
+        self.reorganize_files(errs, remove_duplicate_files=remove_duplicate_files)
 
     def reorganize_jpegs(self) -> None:
         cover = self.dir / "Cover.jpg"
@@ -189,27 +189,33 @@ class MusicFolder:
                 print(f"RENAME {cover[0].as_posix()} -> {folder[0].as_posix()}")
                 cover[0].rename(folder[0])
 
-    def reorganize_files(self, errs: Errors) -> None:
+    def reorganize_files(self, errs: Errors, remove_duplicate_files=False) -> None:
         for track in self.tracks:
             try:
                 if isinstance(track, tuple):
-                    self.rename_file(*track)
+                    self.rename_file(*track, rm_on_exists=remove_duplicate_files)
                 else:
                     for path in track:
-                        self.rename_file(path, TinyTag.get(path))
+                        self.rename_file(path, TinyTag.get(path), rm_on_exists=remove_duplicate_files)
             except Exception as err:
                 print(err)
                 p = self.dir.as_posix() if isinstance(track, Generator) else track[0].as_posix()
                 errs.append((err.__class__.__name__, p))
 
     @staticmethod
-    def rename_file(p: Path, t: TinyTag) -> None:
-        p = p.resolve()
-        target = f"{(t.track or '').zfill(2)} - {t.title}"
-        target = p / ".." / (fix_path(target) + p.suffix)
-        if p.name != target.name:
-            print(f"{p.resolve().as_posix()} -> {target.name}")
-            p.rename(target)
+    def rename_file(p: Path, t: TinyTag, *, rm_on_exists: bool) -> None:
+        try:
+            p = p.resolve()
+            target = f"{(t.track or '').zfill(2)} - {t.title}"
+            target = p / ".." / (fix_path(target) + p.suffix)
+            if p.name != target.name:
+                print(f"{p.resolve().as_posix()} -> {target.name}")
+                p.rename(target)
+        except FileExistsError as err:
+            if rm_on_exists:
+                print(f"DELETE {p.as_posix()}")
+                return p.unlink()
+            raise err
 
 
 def sort_root(dir: Path, root: Path = None, *, remove_empty: bool, **kwargs) -> None:
@@ -230,12 +236,21 @@ def sort_root(dir: Path, root: Path = None, *, remove_empty: bool, **kwargs) -> 
         cleanup(root)
 
 
-def _sort_dir(dir: Path, root: Path, *, errs: Errors, rename_dirs: bool, rename_files: bool) -> None:
+def _sort_dir(
+    dir: Path, root: Path, *, errs: Errors, rename_dirs: bool, rename_files: bool, remove_duplicate_files: bool
+) -> None:
     """Function called by sort_root_dir. Probably shouldn't be called directly elsewhere."""
     # Recursively iterate through subdirectories
     for path in dir.iterdir():
         if is_valid_dir(path):
-            _sort_dir(path, root, errs=errs, rename_dirs=rename_dirs, rename_files=rename_files)
+            _sort_dir(
+                path,
+                root,
+                errs=errs,
+                rename_dirs=rename_dirs,
+                rename_files=rename_files,
+                remove_duplicate_files=remove_duplicate_files,
+            )
 
     # Actual sorting
     if is_music_folder(dir):
@@ -249,7 +264,7 @@ def _sort_dir(dir: Path, root: Path, *, errs: Errors, rename_dirs: bool, rename_
         if rename_dirs:
             rename(folder, root, errs)
         if rename_files:
-            folder.reorganize(errs)
+            folder.reorganize(errs, remove_duplicate_files)
 
 
 def get_target_dir(root: Path, folder: MusicFolder, *, known_genres: dict[str, str] = {}) -> Path:
