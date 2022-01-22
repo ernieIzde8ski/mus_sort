@@ -2,7 +2,7 @@ import textwrap
 from pathlib import Path
 from typing import Generator, Optional
 
-from tinytag import TinyTag
+from tinytag import TinyTag, TinyTagException
 
 accepted_files = (
     ".mp3",
@@ -214,7 +214,13 @@ def _sort_dir(dir: Path, root_dir: Path, *, errs: Errors, rename_dirs: bool, ren
 
     # Actual sorting
     if is_album_directory(dir):
-        album = AlbumStats(dir)
+        try:
+            album = AlbumStats(dir)
+        except TinyTagException as err:
+            print(err.__class__.__name__, err)
+            if errs:
+                errs.append((err.__class__.__name__, dir.as_posix()))
+            return
         if rename_dirs:
             rename(album, root_dir, errs)
         if rename_files:
@@ -252,12 +258,12 @@ def rename(stats: AlbumStats, root_dir: Path, errs: Errors) -> None:
     except FileExistsError as err:
         print(err)
         if errs is not None:
-            errs.append((stats.artist, album))
+            errs.append((err.__class__.__name__, stats.artist, album))
     except PermissionError as err:
         if err.winerror != 5 or errs is None:
             raise err
         print(f"Access is denied for album '{stats.artist} - {album}'.")
-        errs.append((stats.artist, album))
+        errs.append((err.__class__.__name__, stats.artist, album))
 
 
 def cleanup(dir: Path) -> None:
