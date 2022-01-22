@@ -54,12 +54,11 @@ Mode = dict[Modum, bool]
 
 def request_mode(display: str = "Mode? ", modes: tuple[None | Modum, ...] = MODES, *, default: str = "") -> Mode:
     try:
-        selections = input(display) or default
-        if selections.lower() == "all":
-            return {modum: True for modum in modes if modum is not None}
-        selections = int(selections)
+        selections = int(input(display) or default)
     except ValueError:
         raise TypeError("Please provide an integer.")
+    if selections == -1:
+        return {modum: True for modum in modes if modum is not None}
     ln = len(modes)
     # Convert into binary with a fixed length.
     selections = bin(selections)[2:].zfill(ln)[:ln]
