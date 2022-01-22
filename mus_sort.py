@@ -24,7 +24,7 @@ accepted_files = (
 
 MAIN_PARAMS = None, "rename_files", "remove_empty", "rename_dirs"
 
-Errors = list[tuple[str, str]]
+Errors = list[tuple[str | None, ...]]
 Param = str
 Params = dict[Param, bool]
 
@@ -82,9 +82,9 @@ replacements: tuple[tuple[str, str], ...] = (
 )
 
 
-def fix_new_path(name: str) -> str:
+def fix_new_path(name: str, *, width: int=50) -> str:
     """Shortens a string & ensures it will not break as a Windows path name"""
-    resp = textwrap.fill(name.strip().split(";")[0].split("\\")[0], width=50, placeholder="(…)", max_lines=1)
+    resp = textwrap.fill(name.strip().split(";")[0].split("\\")[0], width=width, placeholder="(…)", max_lines=1)
     for r1, r2 in replacements:
         resp = resp.replace(r1, r2)
     return resp
@@ -221,43 +221,43 @@ def _sort_dir(dir: Path, root_dir: Path, *, errs: Errors, rename_dirs: bool, ren
             album.reorganize(errs)
 
 
-def new_dir(root: Path, stats: AlbumStats, *, known_genres: dict[str, str] = {}) -> tuple[Path, str, str]:
-    genre = stats.genre if (stats.genre and stats.genre != "Other") else "UNKNOWN_GENRE"
-    artist = stats.artist or "UNKNOWN_ARTIST"
+def get_target_dir(root: Path, stats: AlbumStats, *, known_genres: dict[str, str] = {}) -> tuple[Path, str]:
+    stats.genre = stats.genre if (stats.genre and stats.genre != "Other") else "UNKNOWN_GENRE"
+    stats.artist = stats.artist or "UNKNOWN_ARTIST"
     album = stats.album or "Singles"
     if stats.year is not None:
         album = f"{stats.year} - {album}"
 
-    genre, artist, album = fix_new_paths(genre, artist, album)
-    if artist in known_genres:
-        genre = known_genres[artist]
+    stats.genre, stats.artist, album = fix_new_paths(stats.genre, stats.artist, album)
+    if stats.artist in known_genres:
+        stats.genre = known_genres[stats.artist]
     else:
-        known_genres[artist] = genre
+        known_genres[stats.artist] = stats.genre
 
-    return root / genre / artist, artist, album
+    return root / stats.genre / stats.artist, album
 
 
 def rename(stats: AlbumStats, root_dir: Path, errs: Errors) -> None:
     """Renames an Album directory"""
     # Define new directory
-    target, artist, album = new_dir(root_dir, stats)
-
-    # Create the new directory's parent
+    target, album = get_target_dir(root_dir, stats)
     target.mkdir(parents=True, exist_ok=True)
 
     # Move into the new directory
     try:
         stats.dir = stats.dir.rename(target / album)
         stats.reset = True
+        log = ((i or "").ljust(20) for i in (stats.genre, stats.artist, album))
+        print(*log, sep="")
     except FileExistsError as err:
         print(err)
         if errs is not None:
-            errs.append((artist, album))
+            errs.append((stats.artist, album))
     except PermissionError as err:
         if err.winerror != 5 or errs is None:
             raise err
-        print(f"Access is denied for album '{artist} - {album}'.")
-        errs.append((artist, album))
+        print(f"Access is denied for album '{stats.artist} - {album}'.")
+        errs.append((stats.artist, album))
 
 
 def cleanup(dir: Path) -> None:
