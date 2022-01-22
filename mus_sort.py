@@ -54,7 +54,10 @@ Mode = dict[Modum, bool]
 
 def request_mode(display: str = "Mode? ", modes: tuple[None | Modum, ...] = MODES, *, default: str = "") -> Mode:
     try:
-        selections = int(input(display) or default)
+        selections = input(display) or default
+        if selections.lower() == "all":
+            return {modum: True for modum in modes if modum is not None}
+        selections = int(selections)
     except ValueError:
         raise TypeError("Please provide an integer.")
     ln = len(modes)
