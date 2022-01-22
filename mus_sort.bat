@@ -1,4 +1,4 @@
 @echo off
 git pull
-python3 mus_sort.py
+python mus_sort.py
 pause
