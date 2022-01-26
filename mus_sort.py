@@ -23,8 +23,7 @@ Terms as used:
 
 import textwrap
 from pathlib import Path
-from tokenize import maybe
-from typing import Any, Generator, Optional, TypeVar
+from typing import Generator, Optional
 
 from tinytag import TinyTag, TinyTagException
 
