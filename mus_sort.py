@@ -28,10 +28,10 @@ from typing import Generator, Optional
 from tinytag import TinyTag, TinyTagException
 
 
+### Consts
 INVALID_DIRS = ".git", "__pycache__", "downloading"
 MODES = "remove_duplicates", "rename_files", "remove_empty", "rename_dirs"
 
-# TODO: Possibly remove in favor of TinyTag.is_supported
 MUSFILE_SUFFIXES = (
     ".mp3",
     ".wav",
@@ -70,30 +70,7 @@ Modum = str
 Mode = dict[Modum, bool]
 
 
-def request_mode(display: str = "Mode? ", modes: tuple[None | Modum, ...] = MODES, *, default: str = "") -> Mode:
-    try:
-        selections = int(input(display) or default)
-    except ValueError:
-        raise TypeError("Please provide an integer.")
-    if selections == -1:
-        return {modum: True for modum in modes if modum is not None}
-    ln = len(modes)
-    # Convert into binary with a fixed length.
-    selections = bin(selections)[2:].zfill(ln)[:ln]
-    return {modum: (selections[index] == "1") for index, modum in enumerate(modes) if modum is not None}
-
-
-def request_dirs(display: str, default: str = "Path? ") -> tuple[Path | None, Path]:
-    path = input(display) or default
-
-    root = Path(".").resolve() if path.startswith("./") else None
-    path = Path(path)
-    if not is_valid_dir(path):
-        raise ValueError(f"Path '{path.resolve()}' is not a valid directory!")
-
-    return root, path
-
-
+### Utils
 def is_music(path: Path) -> bool:
     """Verifies a path is a music file compatible with TinyTag"""
     return path.is_file() and path.suffix.lower() in MUSFILE_SUFFIXES
@@ -110,6 +87,17 @@ def is_music_folder(dir: Path) -> bool:
     return any(item.suffix.lower() in MUSFILE_SUFFIXES for item in dir.iterdir())
 
 
+def is_int(i: str | None) -> bool:
+    """I don't even know anymore. I don't like files. They're bad."""
+    if not i:
+        return False
+    try:
+        int(i)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
 def fix_path(name: str, *, width: int = 50) -> str:
     """Truncates a string & ensures it will not break as a path under Windows."""
     resp = name.strip().split(";")[0].split("\\")[0]
@@ -124,17 +112,7 @@ def fix_paths(*names: str) -> Generator[str, None, None]:
     return (fix_path(name) for name in names)
 
 
-def is_int(i: str | None) -> bool:
-    """I don't even know anymore. I don't like files. They're bad."""
-    if not i:
-        return False
-    try:
-        int(i)
-        return True
-    except (ValueError, TypeError):
-        return False
-
-
+# Sorting
 class MusicFolder:
     """Contains only relevant information about a music folder"""
 
@@ -331,10 +309,35 @@ def cleanup(root: Path) -> None:
         pass
 
 
+### Interface
+def request_mode(display: str = "Mode? ", modes: tuple[None | Modum, ...] = MODES, *, default: str = "") -> Mode:
+    try:
+        selections = int(input(display) or default)
+    except ValueError:
+        raise TypeError("Please provide an integer.")
+    if selections == -1:
+        return {modum: True for modum in modes if modum is not None}
+    ln = len(modes)
+    # Convert into binary with a fixed length.
+    selections = bin(selections)[2:].zfill(ln)[:ln]
+    return {modum: (selections[index] == "1") for index, modum in enumerate(modes) if modum is not None}
+
+
+def request_dirs(display: str, default: str = "Path? ") -> tuple[Path | None, Path]:
+    path = input(display) or default
+
+    root = Path(".").resolve() if path.startswith("./") else None
+    path = Path(path)
+    if not is_valid_dir(path):
+        raise ValueError(f"Path '{path.resolve()}' is not a valid directory!")
+
+    return root, path
+
+
 def request_opts(modes: tuple[str | None, ...]) -> tuple[Mode, Path | None, Path]:
     dirs = [str(path) for path in Path(".").iterdir() if is_valid_dir(path)]
     print(f"Subdirectories here: {', '.join(dirs)}")
-    print(f"Modes: {', '.join(m or 'None' for m in modes)}")
+    print(f"Modes: {', '.join(i or 'None' for i in modes)}")
 
     print()
     default_path, default_mode = ".", "3"
