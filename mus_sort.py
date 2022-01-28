@@ -27,7 +27,12 @@ from typing import Generator, Optional
 
 from tinytag import TinyTag, TinyTagException
 
-accepted_suffixes = (
+
+INVALID_DIRS = ".git", "__pycache__", "downloading"
+MODES = "remove_duplicates", "rename_files", "remove_empty", "rename_dirs"
+
+# TODO: Possibly remove in favor of TinyTag.is_supported
+MUSFILE_SUFFIXES = (
     ".mp3",
     ".wav",
     ".flac",
@@ -44,8 +49,21 @@ accepted_suffixes = (
     ".mp4",
 )
 
+DEFAULT_REPLACEMENTS: tuple[tuple[str, str], ...] = (
+    (": ", " - "),
+    (":", ";"),
+    ('"', "'"),
+    ("\\", ""),
+    ("/", ""),
+    ("|", ""),
+    ("*", "-"),
+    ("?", "❓"),
+    ("...", "…"),
+    (".", ""),
+    ("<", "{"),
+    (">", "}"),
+)
 
-MODES = "remove_duplicates", "rename_files", "remove_empty", "rename_dirs"
 
 Errors = list[tuple[str | None, ...]]
 Modum = str
@@ -65,7 +83,7 @@ def request_mode(display: str = "Mode? ", modes: tuple[None | Modum, ...] = MODE
     return {modum: (selections[index] == "1") for index, modum in enumerate(modes) if modum is not None}
 
 
-def request_dirs(display: str, default: str = "") -> tuple[Path | None, Path]:
+def request_dirs(display: str, default: str = "Path? ") -> tuple[Path | None, Path]:
     path = input(display) or default
 
     root = Path(".").resolve() if path.startswith("./") else None
@@ -78,7 +96,7 @@ def request_dirs(display: str, default: str = "") -> tuple[Path | None, Path]:
 
 def is_music(path: Path) -> bool:
     """Verifies a path is a music file compatible with TinyTag"""
-    return path.is_file() and path.suffix.lower() in accepted_suffixes
+    return path.is_file() and path.suffix.lower() in MUSFILE_SUFFIXES
 
 
 def is_valid_dir(path: Path) -> bool:
@@ -89,29 +107,13 @@ def is_valid_dir(path: Path) -> bool:
 
 def is_music_folder(dir: Path) -> bool:
     """Verifies that a directory contains music."""
-    return any(item.suffix.lower() in accepted_suffixes for item in dir.iterdir())
-
-
-replacements: tuple[tuple[str, str], ...] = (
-    (": ", " - "),
-    (":", ";"),
-    ('"', "'"),
-    ("\\", ""),
-    ("/", ""),
-    ("|", ""),
-    ("*", "-"),
-    ("?", "❓"),
-    ("...", "…"),
-    (".", ""),
-    ("<", "{"),
-    (">", "}"),
-)
+    return any(item.suffix.lower() in MUSFILE_SUFFIXES for item in dir.iterdir())
 
 
 def fix_path(name: str, *, width: int = 50) -> str:
     """Truncates a string & ensures it will not break as a path under Windows."""
     resp = name.strip().split(";")[0].split("\\")[0]
-    for r1, r2 in replacements:
+    for r1, r2 in DEFAULT_REPLACEMENTS:
         resp = resp.replace(r1, r2)
     resp = textwrap.fill(resp, width=width, placeholder="(…)", max_lines=1)
     return resp
@@ -142,7 +144,7 @@ class MusicFolder:
     album: Optional[str]
     keys = ("year", "genre", "album", "artist")
 
-    def __init__(self, dir: Path) -> None:
+    def __init__(self, dir: Path, maxToCheck: int = 5) -> None:
         self.year = None
         self.genre = None
         self.artist = None
@@ -167,7 +169,7 @@ class MusicFolder:
                     if value is not None:
                         setattr(self, key, str(value or "").replace("/", "-") or None)
 
-            if (self.year and self.genre and self.album and self.artist) or (i >= 10):
+            if (self.year and self.genre and self.album and self.artist) or (i >= maxToCheck):
                 break
 
         self.tracks.append(paths)
@@ -220,7 +222,7 @@ class MusicFolder:
             raise err
 
 
-def sort_root(dir: Path, root: Path = None, *, remove_empty: bool, **kwargs) -> None:
+def sort_root(dir: Path, root: Path = None, *, errs: Errors, remove_empty: bool, **kwargs: bool) -> None:
     r"""Sorts Albums in some directory to the root directory
 
     Format: <genre>/<artist>/[<year> - ]<album>
@@ -232,7 +234,7 @@ def sort_root(dir: Path, root: Path = None, *, remove_empty: bool, **kwargs) -> 
         root = dir.resolve()
 
     if kwargs["rename_files"] or kwargs["rename_dirs"]:
-        _sort_dir(dir, root, **kwargs)
+        _sort_dir(dir, root, errs=errs, **kwargs)
 
     if remove_empty:
         cleanup(root)
@@ -241,7 +243,7 @@ def sort_root(dir: Path, root: Path = None, *, remove_empty: bool, **kwargs) -> 
 def _sort_dir(
     dir: Path, root: Path, *, errs: Errors, rename_dirs: bool, rename_files: bool, remove_duplicates: bool
 ) -> None:
-    """Function called by sort_root_dir. Probably shouldn't be called directly elsewhere."""
+    """Function called by sort_root. Probably shouldn't be called directly elsewhere."""
     # Recursively iterate through subdirectories]
     for path in dir.iterdir():
         if is_valid_dir(path):
@@ -335,13 +337,13 @@ def request_opts(modes: tuple[str | None, ...]) -> tuple[Mode, Path | None, Path
     print(f"Modes: {', '.join(m or 'None' for m in modes)}")
 
     print()
-    p, m = ".", "3"
-    print(f"Default path: '{p}'")
-    print(f"Default mode: '{m}'")
+    default_path, default_mode = ".", "3"
+    print(f"Default path: '{default_path}'")
+    print(f"Default mode: '{default_mode}'")
 
     print()
-    dirs = request_dirs("Path?  ", default=p)
-    mode = request_mode("Mode?  ", modes, default=m)
+    dirs = request_dirs("Path?  ", default=default_path)
+    mode = request_mode("Mode?  ", modes, default=default_mode)
 
     print()
     print(f"{mode=}")
