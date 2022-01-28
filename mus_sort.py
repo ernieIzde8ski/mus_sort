@@ -78,8 +78,7 @@ def is_music(path: Path) -> bool:
 
 def is_valid_dir(path: Path) -> bool:
     """Verifies that a path is both a directory and not a git or pycache directory"""
-    # TODO: Extract invalid names into tuple.
-    return path.is_dir() and path.name != ".git" and path.name != "__pycache__"
+    return path.is_dir() and path.name not in INVALID_DIRS
 
 
 def is_music_folder(dir: Path) -> bool:
@@ -180,7 +179,7 @@ class MusicFolder:
                 exit()
             except Exception as err:
                 print(err)
-                errs.append((err.__class__.__name__ , path.as_posix()))
+                errs.append((err.__class__.__name__, path.as_posix()))
 
     def __iter__(self) -> Generator[tuple[Path, TinyTag], None, None]:
         if self.reset:
@@ -213,7 +212,7 @@ class MusicFolder:
             raise err
 
 
-def sort_root(dir: Path, root: Path = None, *, errs: Errors, remove_empty: bool, **kwargs: bool) -> None:
+def sort_root(root: Path, dir: Path, *, errs: Errors, remove_empty: bool, **kwargs: bool) -> None:
     r"""Sorts Albums in some directory to the root directory
 
     Format: <genre>/<artist>/[<year> - ]<album>
@@ -221,9 +220,6 @@ def sort_root(dir: Path, root: Path = None, *, errs: Errors, remove_empty: bool,
     For example:
         * `./Symphonies Of Doom [1985]` → `./Power Metal/Blind Guardian/1985 - Symphonies Of Doom`
     """
-    if root is None:
-        root = dir.resolve()
-
     if kwargs["rename_files"] or kwargs["rename_dirs"]:
         _sort_dir(dir, root, errs=errs, **kwargs)
 
@@ -336,18 +332,18 @@ def request_mode(display: str = "Mode? ", modes: tuple[None | Modum, ...] = MODE
     return {modum: (selections[index] == "1") for index, modum in enumerate(modes) if modum is not None}
 
 
-def request_dirs(display: str, default: str = "Path? ") -> tuple[Path | None, Path]:
-    path = input(display) or default
+def request_dirs(display: str, default: str = "Path? ") -> tuple[Path, Path]:
+    resp = input(display) or default
+    path = Path(resp).resolve()
+    root = Path().resolve() if resp.startswith("./") else path
 
-    root = Path(".").resolve() if path.startswith("./") else None
-    path = Path(path)
     if not is_valid_dir(path):
         raise ValueError(f"Path '{path.resolve()}' is not a valid directory!")
 
     return root, path
 
 
-def request_opts(modes: tuple[str | None, ...]) -> tuple[Mode, Path | None, Path]:
+def request_opts(modes: tuple[str | None, ...]) -> tuple[Mode, Path, Path]:
     dirs = [str(path) for path in Path(".").iterdir() if is_valid_dir(path)]
     print(f"Subdirectories here: {', '.join(dirs)}")
     print(f"Modes: {', '.join(i or 'None' for i in modes)}")
@@ -374,7 +370,7 @@ def main() -> None:
     """
     kwargs, root, path = request_opts(MODES)
     errors: Errors = []
-    sort_root(path, root, errs=errors, **kwargs)
+    sort_root(root, path, errs=errors, **kwargs)
     if errors:
         print("\n\n\nErrors occurred for the following paths:")
         for error in errors:
