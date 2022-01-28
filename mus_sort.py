@@ -180,7 +180,7 @@ class MusicFolder:
                 exit()
             except Exception as err:
                 print(err)
-                errs.append((err.__class__.__name__, str(path.exists()) , path.as_posix()))
+                errs.append((err.__class__.__name__ , path.as_posix()))
 
     def __iter__(self) -> Generator[tuple[Path, TinyTag], None, None]:
         if self.reset:
