@@ -172,27 +172,40 @@ class MusicFolder:
                 cover[0].rename(folder[0])
 
     def reorganize_files(self, errs: Errors, remove_duplicates=False) -> None:
-        for track in self.tracks:
+        for path, track in self:
             try:
-                if isinstance(track, tuple):
-                    self.rename_file(*track, rm_on_exists=remove_duplicates)
-                else:
-                    for path in track:
-                        self.rename_file(path, TinyTag.get(path), rm_on_exists=remove_duplicates)
+                self.rename_file(path, track, rm_on_exists=remove_duplicates)
+            except NotADirectoryError as err:
+                print(err)
+                exit()
             except Exception as err:
                 print(err)
-                p = self.dir.as_posix() if isinstance(track, Generator) else track[0].as_posix()
-                errs.append((err.__class__.__name__, p))
+                errs.append((err.__class__.__name__, str(path.exists()) , path.as_posix()))
+
+    def __iter__(self) -> Generator[tuple[Path, TinyTag], None, None]:
+        if self.reset:
+            self.tracks = list(((path for path in self.dir.iterdir() if is_music(path)),))
+            self.reset = False
+        for maybe_track in self.tracks:
+            if isinstance(maybe_track, tuple):
+                yield maybe_track
+            else:
+                for path in maybe_track:
+                    yield path, TinyTag.get(path)
 
     @staticmethod
     def rename_file(p: Path, t: TinyTag, *, rm_on_exists: bool) -> None:
+        p = p.resolve()
+        target = f"{(t.track or '').zfill(2)} - {t.title}"
+        target = p / ".." / (fix_path(target) + p.suffix)
         try:
-            p = p.resolve()
-            target = f"{(t.track or '').zfill(2)} - {t.title}"
-            target = p / ".." / (fix_path(target) + p.suffix)
             if p.name != target.name:
                 print(f"{p.resolve().as_posix()} -> {target.name}")
                 p.rename(target)
+        except NotADirectoryError:
+            # Linux compatibility
+            target = target.resolve()
+            p.rename(target)
         except FileExistsError as err:
             if rm_on_exists:
                 print(f"DELETE {p.as_posix()}")
