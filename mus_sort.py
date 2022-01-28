@@ -221,22 +221,22 @@ def sort_root(root: Path, dir: Path, *, errs: Errors, remove_empty: bool, **kwar
         * `./Symphonies Of Doom [1985]` → `./Power Metal/Blind Guardian/1985 - Symphonies Of Doom`
     """
     if kwargs["rename_files"] or kwargs["rename_dirs"]:
-        _sort_dir(dir, root, errs=errs, **kwargs)
+        _sort_dir(root, dir, errs=errs, **kwargs)
 
     if remove_empty:
         cleanup(root)
 
 
 def _sort_dir(
-    dir: Path, root: Path, *, errs: Errors, rename_dirs: bool, rename_files: bool, remove_duplicates: bool
+    root: Path, dir: Path, *, errs: Errors, rename_dirs: bool, rename_files: bool, remove_duplicates: bool
 ) -> None:
     """Function called by sort_root. Probably shouldn't be called directly elsewhere."""
     # Recursively iterate through subdirectories]
     for path in dir.iterdir():
         if is_valid_dir(path):
             _sort_dir(
-                path,
                 root,
+                path,
                 errs=errs,
                 rename_dirs=rename_dirs,
                 rename_files=rename_files,
@@ -254,7 +254,7 @@ def _sort_dir(
             return
 
         if rename_dirs:
-            rename(folder, root, errs, remove_duplicates)
+            rename(root, folder, errs, remove_duplicates)
         if rename_files:
             folder.reorganize(errs, remove_duplicates)
 
@@ -276,10 +276,10 @@ def get_target_dir(root: Path, folder: MusicFolder, *, known_genres: dict[str, s
     return root / folder.genre / folder.artist
 
 
-def rename(folder: MusicFolder, root_dir: Path, errs: Errors, remove_duplicates: bool) -> None:
+def rename(root: Path, folder: MusicFolder, errs: Errors, remove_duplicates: bool) -> None:
     """Renames a music folder"""
     # Define new directory
-    target = get_target_dir(root_dir, folder)
+    target = get_target_dir(root, folder)
     target.mkdir(parents=True, exist_ok=True)
 
     # Move into the new directory
@@ -306,7 +306,7 @@ def rename(folder: MusicFolder, root_dir: Path, errs: Errors, remove_duplicates:
 def cleanup(root: Path) -> None:
     """Recursively deletes all empty directories.
 
-    This assumes that, like on Windows, non-empty directories cannot be deleted.
+    This assumes that, like on Windows (and Linux!), non-empty directories cannot be deleted.
     """
     for path in root.iterdir():
         if is_valid_dir(path):
