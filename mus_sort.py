@@ -358,7 +358,10 @@ def request_opts(modes: tuple[str | None, ...]) -> tuple[Mode, Path, Path]:
     mode = request_mode("Mode?  ", modes, default=default_mode)
 
     print()
-    print(f"{mode=}")
+    print("Selected root:", dirs[0].as_posix())
+    print("Selected path:", dirs[1].as_posix())
+    print("Selected modes:", ", ".join(i for i in mode if mode[i]) or None)
+
     return mode, *dirs
 
 
