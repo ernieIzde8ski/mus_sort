@@ -297,7 +297,7 @@ def rename(root: Path, folder: MusicFolder, errs: Errors, remove_duplicates: boo
                 i.unlink()
             folder.dir.rmdir()
     except PermissionError as err:
-        if err.winerror != 5 or errs is None:
+        if getattr(err, "winerror", None) != 5 or errs is None:
             raise err
         print(f"Access is denied for album '{folder.artist} - {folder.album}'.")
         errs.append((err.__class__.__name__, folder.artist, folder.album))
