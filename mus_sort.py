@@ -141,8 +141,10 @@ class MusicFolder:
                     value = getattr(track, key)
                     if key == "artist":
                         value = getattr(track, "albumartist") or value
-                    elif key == "year" and is_int(value):
-                        value = value[:4]
+                    elif key == "year":
+                        value = value.split("-")[0]
+                        if is_int(value):
+                            value = value[:4]
                     if value is not None:
                         setattr(self, key, str(value or "").replace("/", "-") or None)
 
