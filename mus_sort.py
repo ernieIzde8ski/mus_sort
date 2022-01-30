@@ -86,10 +86,8 @@ def is_music_folder(dir: Path) -> bool:
     return any(item.suffix.lower() in MUSFILE_SUFFIXES for item in dir.iterdir())
 
 
-def is_int(i: str | None) -> bool:
+def is_int(i: str) -> bool:
     """I don't even know anymore. I don't like files. They're bad."""
-    if not i:
-        return False
     try:
         int(i)
         return True
@@ -141,7 +139,7 @@ class MusicFolder:
                     value = getattr(track, key)
                     if key == "artist":
                         value = getattr(track, "albumartist") or value
-                    elif key == "year":
+                    elif key == "year" and value:
                         value = value.split("-")[0]
                         if is_int(value):
                             value = value[:4]
