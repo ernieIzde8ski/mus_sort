@@ -287,7 +287,7 @@ def rename(root: Path, folder: MusicFolder, errs: Errors, remove_duplicates: boo
         # TODO: "Stringly typed" so that I don't have to deal with str() and also can ignore type checker errors.
         folder.dir = folder.dir.rename(target / str(folder.album))
         folder.reset = True
-        print(*((i or "").ljust(20) for i in (folder.genre, folder.artist, folder.album)))
+        print(*((i or "").ljust(25) for i in (folder.genre, folder.artist, folder.album)))
     except FileExistsError as err:
         if errs and not remove_duplicates:
             print(err)
