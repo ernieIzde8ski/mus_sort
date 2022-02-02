@@ -29,7 +29,7 @@ from tinytag import TinyTag, TinyTagException
 
 
 ### Consts
-INVALID_DIRS = ".git", "__pycache__", "downloading"
+INVALID_DIRS = ".git", "__pycache__", "downloading", "iTunes"
 MODES = "remove_duplicates", "rename_files", "remove_empty", "rename_dirs"
 
 MUSFILE_SUFFIXES = (
