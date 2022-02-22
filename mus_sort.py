@@ -95,18 +95,15 @@ def is_int(i: str) -> bool:
         return False
 
 
-def fix_path(name: str, *, width: int = 50) -> str:
+def fix_path(name: str, *, width: int = 50, strict: bool = False) -> str:
     """Truncates a string & ensures it will not break as a path under Windows."""
     resp = name.strip().split(";")[0].split("\\")[0]
+    if strict:
+        resp = resp.split(",")[0]
     for r1, r2 in DEFAULT_REPLACEMENTS:
         resp = resp.replace(r1, r2)
     resp = textwrap.fill(resp, width=width, placeholder="(…)", max_lines=1)
     return resp
-
-
-def fix_paths(*names: str) -> Generator[str, None, None]:
-    """Alias for calling fix_path on multiple items. Returns the same length of items."""
-    return (fix_path(name) for name in names)
 
 
 # Sorting
@@ -209,7 +206,7 @@ class MusicFolder:
             if rm_on_exists:
                 print(f"DELETE {p.as_posix()}")
                 return p.unlink()
-            raise err
+            raise err from err
 
 
 def sort_root(root: Path, dir: Path, *, errs: Errors, remove_empty: bool, **kwargs: bool) -> None:
@@ -231,7 +228,7 @@ def _sort_dir(
     root: Path, dir: Path, *, errs: Errors, rename_dirs: bool, rename_files: bool, remove_duplicates: bool
 ) -> None:
     """Function called by sort_root. Probably shouldn't be called directly elsewhere."""
-    # Recursively iterate through subdirectories]
+    # Recursively iterate through subdirectories
     for path in dir.iterdir():
         if is_valid_dir(path):
             _sort_dir(
@@ -261,13 +258,21 @@ def _sort_dir(
 
 def get_target_dir(root: Path, folder: MusicFolder, *, known_genres: dict[str, str] = {}) -> Path:
     """Returns a new target directory and adjusts the properties of folder simultaneously"""
+    # TODO: Consider making this a method of MusicFolder, seeing as having a non-method
+    # in the same file that directly accesses attributes of it feels a bit silly.
+    # Maybe make rename function a method too.
+
     folder.genre = folder.genre if (folder.genre and folder.genre != "Other") else "UNKNOWN_GENRE"
     folder.artist = folder.artist or "UNKNOWN_ARTIST"
     folder.album = folder.album or "Singles"
+
     if folder.year is not None:
         folder.album = f"{folder.year} - {folder.album}"
 
-    folder.genre, folder.artist, folder.album = fix_paths(folder.genre, folder.artist, folder.album)
+    folder.genre = fix_path(folder.genre, strict=True)
+    folder.artist = fix_path(folder.artist)
+    folder.album = fix_path(folder.album)
+
     if folder.artist in known_genres:
         folder.genre = known_genres[folder.artist]
     else:
@@ -298,7 +303,7 @@ def rename(root: Path, folder: MusicFolder, errs: Errors, remove_duplicates: boo
             folder.dir.rmdir()
     except PermissionError as err:
         if getattr(err, "winerror", None) != 5 or errs is None:
-            raise err
+            raise err from err
         print(f"Access is denied for album '{folder.artist} - {folder.album}'.")
         errs.append((err.__class__.__name__, folder.artist, folder.album))
 
@@ -322,8 +327,8 @@ def cleanup(root: Path) -> None:
 def request_mode(display: str = "Mode? ", modes: tuple[None | Modum, ...] = MODES, *, default: str = "") -> Mode:
     try:
         selections = int(input(display) or default)
-    except ValueError:
-        raise TypeError("Please provide an integer.")
+    except ValueError as err:
+        raise TypeError("Please provide an integer.") from err
     if selections == -1:
         return {modum: True for modum in modes if modum is not None}
     ln = len(modes)
