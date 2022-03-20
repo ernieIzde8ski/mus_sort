@@ -23,7 +23,7 @@ Terms as used:
 
 import textwrap
 from pathlib import Path
-from typing import Generator, Optional
+from typing import Generator, Iterable, Optional
 
 from tinytag import TinyTag, TinyTagException
 
@@ -218,7 +218,10 @@ def sort_root(root: Path, dir: Path, *, errs: Errors, remove_empty: bool, **kwar
         * `./Symphonies Of Doom [1985]` → `./Power Metal/Blind Guardian/1985 - Symphonies Of Doom`
     """
     if kwargs["rename_files"] or kwargs["rename_dirs"]:
-        _sort_dir(root, dir, errs=errs, **kwargs)
+        # Funny things happen when you try and rename the directory you´re currently inside
+        dirs = filter(lambda i: i.is_dir(), root.iterdir()) if root == dir else (dir,)
+        for dir in dirs:
+            _sort_dir(root, dir,errs=errs,**kwargs)
 
     if remove_empty:
         cleanup(root)
