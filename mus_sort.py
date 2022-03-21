@@ -21,15 +21,15 @@ Terms as used:
     Options: Selected directories & mode.
 """
 
-from collections import defaultdict
-from functools import cache
 import itertools
 import textwrap
+from collections import defaultdict
+from functools import cache
 from pathlib import Path
 from platform import system
 from typing import Generator, Iterable, Optional
 
-from tinytag import TinyTag, TinyTagException
+from tinytag.tinytag import TinyTag, TinyTagException
 
 ### Consts
 INVALID_DIRS = ".git", "__pycache__", "downloading", "iTunes"
@@ -337,7 +337,7 @@ def get_command_line_args(argv: list[str] | None = None):
     key = ""
     resp: dict[str, list[str]] = defaultdict(list)
     for token in argv:
-        if token.startswith("-"):
+        if token.startswith("-") and not is_int(token):
             key = token[1:].lower()
         else:
             resp[key].append(token)
