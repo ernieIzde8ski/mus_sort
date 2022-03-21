@@ -21,6 +21,8 @@ Terms as used:
     Options: Selected directories & mode.
 """
 
+from collections import defaultdict
+from functools import cache
 import itertools
 import textwrap
 from pathlib import Path
@@ -326,11 +328,43 @@ def cleanup(root: Path) -> None:
 
 
 ### Interface
+@cache
+def get_command_line_args(argv: list[str] | None = None):
+    if not argv:
+        from sys import argv
+        argv = argv[1:]
+
+    key = ""
+    resp: dict[str, list[str]] = defaultdict(list)
+    for token in argv:
+        if token.startswith("-"):
+            key = token[1:].lower()
+        else:
+            resp[key].append(token)
+    return resp
+
+def _validate_value(val: str, default: str, remove_whitespace: bool) -> str:
+    """Validates command-line arguments"""
+    if remove_whitespace:
+        val = "".join(val.split())
+    if not val or val == "default":
+        return default
+    return val
+
+def request_value(accepted_args: list[str], prompt: str, default: str = "", remove_whitespace=True):
+    cmd_args = get_command_line_args()
+    for arg in accepted_args:
+        resp = " ".join(cmd_args[arg])
+        if resp:
+            return _validate_value(resp, default, remove_whitespace)
+    return _validate_value(input(prompt), default, remove_whitespace)
+
 def request_mode(display: str = "Mode? ", modes: tuple[None | Modum, ...] = MODES, *, default: str = "") -> Mode:
+    val = request_value(["m", "-mode"], display, default)
     try:
-        selections = int(input(display) or default)
+        selections = int(val)
     except ValueError as err:
-        raise TypeError("Please provide an integer.") from err
+        raise TypeError(f"Value '{val}' is not a valid integer") from err
     if selections == -1:
         return {modum: True for modum in modes if modum is not None}
     ln = len(modes)
@@ -339,10 +373,10 @@ def request_mode(display: str = "Mode? ", modes: tuple[None | Modum, ...] = MODE
     return {modum: (selections[index] == "1") for index, modum in enumerate(modes) if modum is not None}
 
 
-def request_dirs(display: str, default: str = "Path? ") -> tuple[Path, Path]:
-    resp = input(display) or default
-    path = Path(resp).resolve()
-    root = Path().resolve() if resp.startswith("./") else path
+def request_dirs(prompt: str, default: str = "") -> tuple[Path, Path]:
+    val = request_value(["p", "-path"], prompt, default)
+    path = Path(val).resolve()
+    root = Path().resolve() if val.startswith("./") else path
 
     if not is_valid_dir(path):
         raise ValueError(f"Path '{path.resolve()}' is not a valid directory!")
@@ -354,20 +388,21 @@ def request_opts(modes: tuple[str | None, ...]) -> tuple[Mode, Path, Path]:
     dirs = [str(path) for path in Path(".").iterdir() if is_valid_dir(path)]
     print(f"Subdirectories here: {', '.join(dirs)}")
     print(f"Modes: {', '.join(i or 'None' for i in modes)}")
-
     print()
+
     default_path, default_mode = ".", "3"
     print(f"Default path: '{default_path}'")
     print(f"Default mode: '{default_mode}'")
-
     print()
+
     dirs = request_dirs("Path?  ", default=default_path)
     mode = request_mode("Mode?  ", modes, default=default_mode)
-
     print()
+
     print("Selected root:", dirs[0].as_posix())
     print("Selected path:", dirs[1].as_posix())
     print("Selected modes:", ", ".join(i for i in mode if mode[i]) or None)
+    print()
 
     return mode, *dirs
 
