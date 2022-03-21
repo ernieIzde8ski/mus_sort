@@ -21,16 +21,18 @@ Terms as used:
     Options: Selected directories & mode.
 """
 
+import itertools
 import textwrap
 from pathlib import Path
+from platform import system
 from typing import Generator, Iterable, Optional
 
 from tinytag import TinyTag, TinyTagException
 
-
 ### Consts
 INVALID_DIRS = ".git", "__pycache__", "downloading", "iTunes"
 MODES = "remove_duplicates", "rename_files", "remove_empty", "rename_dirs"
+SYSTEM = system()
 
 MUSFILE_SUFFIXES = (
     ".mp3",
@@ -49,7 +51,7 @@ MUSFILE_SUFFIXES = (
     ".mp4",
 )
 
-DEFAULT_REPLACEMENTS: tuple[tuple[str, str], ...] = (
+DEFAULT_REPLACEMENTS = (
     (": ", " - "),
     (":", ";"),
     ('"', "'"),
@@ -108,7 +110,7 @@ def fix_path(name: str, *, width: int = 50, strict: bool = False) -> str:
 
 # Sorting
 class MusicFolder:
-    """Contains only relevant information about a music folder"""
+    """Contains relevant information about a music folder"""
 
     year: Optional[str]
     genre: Optional[str]
@@ -123,17 +125,16 @@ class MusicFolder:
         self.album = None
 
         self.dir = dir
-        self.reset = False
-        paths = (path for path in dir.iterdir() if is_music(path))
-        self.tracks: list[tuple[Path, TinyTag] | Generator[Path, None, None]] = []
+        known_tracks: Iterable[tuple[Path, TinyTag]] = []
+        paths = filter(is_music, dir.iterdir())
 
         for i, path in enumerate(paths):
             track = TinyTag.get(path)
-            self.tracks.append((path, track))
+            known_tracks.append((path, track))
 
             for key in self.keys:
                 if getattr(self, key, None) is None:
-                    value = getattr(track, key)
+                    value: str | None = getattr(track, key)
                     if key == "artist":
                         value = getattr(track, "albumartist") or value
                     elif key == "year" and value:
@@ -143,14 +144,17 @@ class MusicFolder:
                     if value is not None:
                         setattr(self, key, str(value or "").replace("/", "-") or None)
 
-            if (self.year and self.genre and self.album and self.artist) or (i >= maxToCheck):
+            if all(getattr(self, __k, None) for __k in self.keys) or (i >= maxToCheck):
                 break
 
-        self.tracks.append(paths)
+        paths = map(lambda p: (p, TinyTag.get(p)), paths)
+        self.known_tracks: Iterable[tuple[Path, TinyTag]] = itertools.chain(known_tracks, paths)
+
+    def reset_known_paths(self):
+        """Resets paths of music files."""
+        self.known_tracks = ((path, TinyTag.get(path)) for path in filter(is_music, self.dir.iterdir()))
 
     def reorganize(self, errs: Errors, remove_duplicates: bool) -> None:
-        if self.reset:
-            self.tracks = list(((path for path in self.dir.iterdir() if is_music(path)),))
         self.reorganize_jpegs()
         self.reorganize_files(errs, remove_duplicates=remove_duplicates)
 
@@ -179,29 +183,22 @@ class MusicFolder:
                 errs.append((err.__class__.__name__, path.as_posix()))
 
     def __iter__(self) -> Generator[tuple[Path, TinyTag], None, None]:
-        if self.reset:
-            self.tracks = list(((path for path in self.dir.iterdir() if is_music(path)),))
-            self.reset = False
-        for maybe_track in self.tracks:
-            if isinstance(maybe_track, tuple):
-                yield maybe_track
-            else:
-                for path in maybe_track:
-                    yield path, TinyTag.get(path)
+        yield from self.known_tracks
 
     @staticmethod
     def rename_file(p: Path, t: TinyTag, *, rm_on_exists: bool) -> None:
         p = p.resolve()
         target = f"{(t.track or '').zfill(2)} - {t.title}"
         target = p / ".." / (fix_path(target) + p.suffix)
+        if SYSTEM == "Linux":
+            target = target.resolve()
+            # This raises an error otherwise
+            # I'm not complaining too much though, seeing as this script goes
+            # like a million times faster under Linux than Windows.
         try:
             if p.name != target.name:
                 print(f"{p.resolve().as_posix()} -> {target.name}")
                 p.rename(target)
-        except NotADirectoryError:
-            # Linux compatibility
-            target = target.resolve()
-            p.rename(target)
         except FileExistsError as err:
             if rm_on_exists:
                 print(f"DELETE {p.as_posix()}")
@@ -219,22 +216,24 @@ def sort_root(root: Path, dir: Path, *, errs: Errors, remove_empty: bool, **kwar
     """
     if kwargs["rename_files"] or kwargs["rename_dirs"]:
         # Funny things happen when you try and rename the directory you´re currently inside
-        dirs = filter(lambda i: i.is_dir(), root.iterdir()) if root == dir else (dir,)
-        for dir in dirs:
-            _sort_dir(root, dir,errs=errs,**kwargs)
+        for path in dir.iterdir():
+            if is_valid_dir(path):
+                sort_dir(root, path, errs=errs, **kwargs)
 
     if remove_empty:
         cleanup(root)
+        if root != dir:
+            cleanup(dir)
 
 
-def _sort_dir(
+def sort_dir(
     root: Path, dir: Path, *, errs: Errors, rename_dirs: bool, rename_files: bool, remove_duplicates: bool
 ) -> None:
     """Function called by sort_root. Probably shouldn't be called directly elsewhere."""
     # Recursively iterate through subdirectories
     for path in dir.iterdir():
         if is_valid_dir(path):
-            _sort_dir(
+            sort_dir(
                 root,
                 path,
                 errs=errs,
@@ -259,7 +258,7 @@ def _sort_dir(
             folder.reorganize(errs, remove_duplicates)
 
 
-def get_target_dir(root: Path, folder: MusicFolder, *, known_genres: dict[str, str] = {}) -> Path:
+def get_parent_dir(root: Path, folder: MusicFolder, *, known_genres: dict[str, str] = {}) -> Path:
     """Returns a new target directory and adjusts the properties of folder simultaneously"""
     # TODO: Consider making this a method of MusicFolder, seeing as having a non-method
     # in the same file that directly accesses attributes of it feels a bit silly.
@@ -287,14 +286,14 @@ def get_target_dir(root: Path, folder: MusicFolder, *, known_genres: dict[str, s
 def rename(root: Path, folder: MusicFolder, errs: Errors, remove_duplicates: bool) -> None:
     """Renames a music folder"""
     # Define new directory
-    target = get_target_dir(root, folder)
-    target.mkdir(parents=True, exist_ok=True)
+    parent = get_parent_dir(root, folder)
+    parent.mkdir(parents=True, exist_ok=True)
 
     # Move into the new directory
     try:
         # TODO: "Stringly typed" so that I don't have to deal with str() and also can ignore type checker errors.
-        folder.dir = folder.dir.rename(target / str(folder.album))
-        folder.reset = True
+        folder.dir = folder.dir.rename(parent / str(folder.album))
+        folder.reset_known_paths()
         print(*((i or "").ljust(25) for i in (folder.genre, folder.artist, folder.album)))
     except FileExistsError as err:
         if errs and not remove_duplicates:
