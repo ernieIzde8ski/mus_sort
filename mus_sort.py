@@ -110,6 +110,13 @@ def fix_path(name: str, *, width: int = 50, strict: bool = False) -> str:
     return resp
 
 
+def genre(artist: str, possible: str, *, __obj: dict[str, str] = {}) -> str:
+    """Abuse of mutable arguments. Do not pass any arguments for __obj. Returns a cached value if possible, else `possible`."""
+    if not __obj.get(artist):
+        __obj[artist] = possible
+    return __obj[artist]
+
+
 # Sorting
 class MusicFolder:
     """Contains relevant information about a music folder"""
@@ -120,6 +127,9 @@ class MusicFolder:
     album: Optional[str]
     keys = ("year", "genre", "album", "artist")
 
+    dir: Path
+    tracks: Iterable[tuple[Path, TinyTag]]
+
     def __init__(self, dir: Path, maxToCheck: int = 5) -> None:
         self.year = None
         self.genre = None
@@ -127,8 +137,8 @@ class MusicFolder:
         self.album = None
 
         self.dir = dir
-        known_tracks: Iterable[tuple[Path, TinyTag]] = []
         paths = filter(is_music, dir.iterdir())
+        known_tracks: Iterable[tuple[Path, TinyTag]] = []
 
         for i, path in enumerate(paths):
             track = TinyTag.get(path)
@@ -150,11 +160,35 @@ class MusicFolder:
                 break
 
         paths = map(lambda p: (p, TinyTag.get(p)), paths)
-        self.known_tracks: Iterable[tuple[Path, TinyTag]] = itertools.chain(known_tracks, paths)
+        self.tracks = itertools.chain(known_tracks, paths)
+
+    def __iter__(self) -> Generator[tuple[Path, TinyTag], None, None]:
+        yield from self.tracks
+
+    def autopath(self, root: Path, create_parents=False) -> Path:
+        """Returns a new path for the folder based on the folder's attributes. May adjust said attributes."""
+        self.artist = fix_path(self.artist or "UNKNOWN_ARTIST")
+        self.album = fix_path(self.album or "Singles")
+        self.year = fix_path(self.year or "")
+        self.genre = fix_path(self.genre if (self.genre and self.genre != "Other") else "UNKNOWN_GENRE", strict=True)
+        self.genre = genre(self.artist, self.genre)
+
+        album = f"{self.year} - {self.album}" if self.year else self.album
+        resp = root / self.genre / self.artist / album
+
+        if create_parents:
+            resp.parent.mkdir(exist_ok=True, parents=True)
+
+        return resp
+
+    def rename(self, target: str | Path) -> Path:
+        self.dir = self.dir.rename(target)
+        self.reset_known_paths()
+        return self.dir
 
     def reset_known_paths(self):
         """Resets paths of music files."""
-        self.known_tracks = ((path, TinyTag.get(path)) for path in filter(is_music, self.dir.iterdir()))
+        self.tracks = ((path, TinyTag.get(path)) for path in filter(is_music, self.dir.iterdir()))
 
     def reorganize(self, errs: Errors, remove_duplicates: bool) -> None:
         self.reorganize_jpegs()
@@ -183,9 +217,6 @@ class MusicFolder:
             except Exception as err:
                 print(err)
                 errs.append((err.__class__.__name__, path.as_posix()))
-
-    def __iter__(self) -> Generator[tuple[Path, TinyTag], None, None]:
-        yield from self.known_tracks
 
     @staticmethod
     def rename_file(p: Path, t: TinyTag, *, rm_on_exists: bool) -> None:
@@ -255,56 +286,33 @@ def sort_dir(
             return
 
         if rename_dirs:
-            rename(root, folder, errs, remove_duplicates)
+            rename_folder(root, folder, errs, remove_duplicates)
         if rename_files:
             folder.reorganize(errs, remove_duplicates)
 
 
-def get_parent_dir(root: Path, folder: MusicFolder, *, known_genres: dict[str, str] = {}) -> Path:
-    """Returns a new target directory and adjusts the properties of folder simultaneously"""
-    # TODO: Consider making this a method of MusicFolder, seeing as having a non-method
-    # in the same file that directly accesses attributes of it feels a bit silly.
-    # Maybe make rename function a method too.
-
-    folder.genre = folder.genre if (folder.genre and folder.genre != "Other") else "UNKNOWN_GENRE"
-    folder.artist = folder.artist or "UNKNOWN_ARTIST"
-    folder.album = folder.album or "Singles"
-
-    if folder.year is not None:
-        folder.album = f"{folder.year} - {folder.album}"
-
-    folder.genre = fix_path(folder.genre, strict=True)
-    folder.artist = fix_path(folder.artist)
-    folder.album = fix_path(folder.album)
-
-    if folder.artist in known_genres:
-        folder.genre = known_genres[folder.artist]
-    else:
-        known_genres[folder.artist] = folder.genre
-
-    return root / folder.genre / folder.artist
-
-
-def rename(root: Path, folder: MusicFolder, errs: Errors, remove_duplicates: bool) -> None:
+def rename_folder(root: Path, folder: MusicFolder, errs: Errors, remove_duplicates: bool) -> None:
     """Renames a music folder"""
     # Define new directory
-    parent = get_parent_dir(root, folder)
-    parent.mkdir(parents=True, exist_ok=True)
+    target = folder.autopath(root, create_parents=True)
 
     # Move into the new directory
     try:
         # TODO: "Stringly typed" so that I don't have to deal with str() and also can ignore type checker errors.
-        folder.dir = folder.dir.rename(parent / str(folder.album))
-        folder.reset_known_paths()
+        folder.rename(target)
         print(*((i or "").ljust(25) for i in (folder.genre, folder.artist, folder.album)))
+
     except FileExistsError as err:
-        if errs and not remove_duplicates:
-            print(err)
-            errs.append((err.__class__.__name__, folder.artist, folder.album))
-        if remove_duplicates:
+        if errs is None:
+            raise err from err
+        elif remove_duplicates:
             for i in folder.dir.iterdir():
                 i.unlink()
             folder.dir.rmdir()
+        else:
+            print(err)
+            errs.append((err.__class__.__name__, folder.artist, folder.album))
+
     except PermissionError as err:
         if getattr(err, "winerror", None) != 5 or errs is None:
             raise err from err
@@ -320,11 +328,6 @@ def cleanup(root: Path) -> None:
     for path in root.iterdir():
         if is_valid_dir(path):
             cleanup(path)
-
-    try:
-        root.rmdir()
-    except:
-        pass
 
 
 ### Interface
@@ -343,6 +346,7 @@ def get_command_line_args(argv: list[str] | None = None):
             resp[key].append(token)
     return resp
 
+
 def _validate_value(val: str, default: str, remove_whitespace: bool) -> str:
     """Validates command-line arguments"""
     if remove_whitespace:
@@ -351,6 +355,7 @@ def _validate_value(val: str, default: str, remove_whitespace: bool) -> str:
         return default
     return val
 
+
 def request_value(accepted_args: list[str], prompt: str, default: str = "", remove_whitespace=True):
     cmd_args = get_command_line_args()
     for arg in accepted_args:
@@ -358,6 +363,7 @@ def request_value(accepted_args: list[str], prompt: str, default: str = "", remo
         if resp:
             return _validate_value(resp, default, remove_whitespace)
     return _validate_value(input(prompt), default, remove_whitespace)
+
 
 def request_mode(display: str = "Mode? ", modes: tuple[None | Modum, ...] = MODES, *, default: str = "") -> Mode:
     val = request_value(["m", "-mode"], display, default)
@@ -374,7 +380,7 @@ def request_mode(display: str = "Mode? ", modes: tuple[None | Modum, ...] = MODE
 
 
 def request_dirs(prompt: str, default: str = "") -> tuple[Path, Path]:
-    val = request_value(["p", "-path"], prompt, default)
+    val = request_value(["p", "-path"], prompt, default, remove_whitespace=False)
     path = Path(val).resolve()
     root = Path().resolve() if val.startswith("./") else path
 
