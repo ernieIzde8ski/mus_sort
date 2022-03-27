@@ -328,8 +328,9 @@ def cleanup(root: Path) -> None:
     for path in root.iterdir():
         if is_valid_dir(path):
             cleanup(path)
-
-
+    try:
+        root.rmdir()
+    except: pass
 ### Interface
 @cache
 def get_command_line_args(argv: list[str] | None = None):
