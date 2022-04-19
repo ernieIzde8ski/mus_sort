@@ -113,7 +113,9 @@ class PathFixer:
         resp = textwrap.fill(resp, width=self.max_length, placeholder="(…)", max_lines=1)
         return resp
 
+
 fixer = PathFixer()
+
 
 def genre(artist: str, possible: str, *, __obj: dict[str, str] = {}) -> str:
     """Abuse of mutable arguments. Do not pass any arguments for __obj. Returns a cached value if possible, else `possible`."""
@@ -175,7 +177,9 @@ class MusicFolder:
         self.artist = fixer.fix_path(self.artist or "UNKNOWN_ARTIST")
         self.album = fixer.fix_path(self.album or "Singles")
         self.year = fixer.fix_path(self.year or "")
-        self.genre = fixer.fix_path(self.genre if (self.genre and self.genre != "Other") else "UNKNOWN_GENRE", strict=True)
+        self.genre = fixer.fix_path(
+            self.genre if (self.genre and self.genre != "Other") else "UNKNOWN_GENRE", strict=True
+        )
         self.genre = genre(self.artist, self.genre)
 
         album = f"{self.year} - {self.album}" if self.year else self.album
@@ -335,12 +339,16 @@ def cleanup(root: Path) -> None:
             cleanup(path)
     try:
         root.rmdir()
-    except: pass
+    except:
+        pass
+
+
 ### Interface
 @cache
 def get_command_line_args(argv: list[str] | None = None):
     if not argv:
         from sys import argv
+
         argv = argv[1:]
 
     key = ""
