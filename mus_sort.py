@@ -28,6 +28,7 @@ from functools import cache
 from pathlib import Path
 from platform import system
 from typing import Generator, Iterable, Optional
+from os import pathconf
 
 from tinytag.tinytag import TinyTag, TinyTagException
 
@@ -99,16 +100,20 @@ def is_int(i: str) -> bool:
         return False
 
 
-def fix_path(name: str, *, width: int = 50, strict: bool = False) -> str:
-    """Truncates a string & ensures it will not break as a path under Windows."""
-    resp = name.strip().split(";")[0].split("\\")[0]
-    if strict:
-        resp = resp.split(",")[0]
-    for r1, r2 in DEFAULT_REPLACEMENTS:
-        resp = resp.replace(r1, r2)
-    resp = textwrap.fill(resp, width=width, placeholder="(…)", max_lines=1)
-    return resp
+class PathFixer:
+    max_length: int = 30
 
+    def fix_path(self, name: str, *, strict: bool = False) -> str:
+        """Truncates a string & ensures it will not break as a path under Windows."""
+        resp = name.strip().split(";")[0].split("\\")[0]
+        if strict:
+            resp = resp.split(",")[0]
+        for r1, r2 in DEFAULT_REPLACEMENTS:
+            resp = resp.replace(r1, r2)
+        resp = textwrap.fill(resp, width=self.max_length, placeholder="(…)", max_lines=1)
+        return resp
+
+fixer = PathFixer()
 
 def genre(artist: str, possible: str, *, __obj: dict[str, str] = {}) -> str:
     """Abuse of mutable arguments. Do not pass any arguments for __obj. Returns a cached value if possible, else `possible`."""
@@ -167,10 +172,10 @@ class MusicFolder:
 
     def autopath(self, root: Path, create_parents=False) -> Path:
         """Returns a new path for the folder based on the folder's attributes. May adjust said attributes."""
-        self.artist = fix_path(self.artist or "UNKNOWN_ARTIST")
-        self.album = fix_path(self.album or "Singles")
-        self.year = fix_path(self.year or "")
-        self.genre = fix_path(self.genre if (self.genre and self.genre != "Other") else "UNKNOWN_GENRE", strict=True)
+        self.artist = fixer.fix_path(self.artist or "UNKNOWN_ARTIST")
+        self.album = fixer.fix_path(self.album or "Singles")
+        self.year = fixer.fix_path(self.year or "")
+        self.genre = fixer.fix_path(self.genre if (self.genre and self.genre != "Other") else "UNKNOWN_GENRE", strict=True)
         self.genre = genre(self.artist, self.genre)
 
         album = f"{self.year} - {self.album}" if self.year else self.album
@@ -222,7 +227,7 @@ class MusicFolder:
     def rename_file(p: Path, t: TinyTag, *, rm_on_exists: bool) -> None:
         p = p.resolve()
         target = f"{(t.track or '').zfill(2)} - {t.title}"
-        target = p / ".." / (fix_path(target) + p.suffix)
+        target = p / ".." / (fixer.fix_path(target) + p.suffix)
         if SYSTEM == "Linux":
             target = target.resolve()
             # This raises an error otherwise
@@ -421,6 +426,7 @@ def main() -> None:
     and format from given path.
     """
     kwargs, root, path = request_opts(MODES)
+    fixer.max_length = pathconf(root, "PC_NAME_MAX")
     errors: Errors = []
     sort_root(root, path, errs=errors, **kwargs)
     if errors:
