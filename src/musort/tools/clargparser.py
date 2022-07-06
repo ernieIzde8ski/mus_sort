@@ -6,7 +6,7 @@ from tap import ArgumentError, Tap
 DEFAULT_IGNORED = (".git", "itunes")
 
 
-class Parser(Tap):
+class ClargParser(Tap):
     dir: Path
     """Folder to sort from."""
     target: Path
@@ -82,7 +82,7 @@ class Parser(Tap):
         self.ignored_paths = {*(i.lower() for i in self.ignored_paths), *DEFAULT_IGNORED}
 
 
-clargs = Parser(underscores_to_dashes=True).parse_args()
+clargs = ClargParser(underscores_to_dashes=True).parse_args()
 logging.basicConfig(level=clargs.level)
 
 if __name__ == "__main__":
