@@ -83,7 +83,9 @@ class Parser(Tap):
         self.ignored_paths = {*(i.lower() for i in self.ignored_paths), *DEFAULT_IGNORED}
 
 
+
 clargs = Parser(underscores_to_dashes=True).parse_args()
+logging.basicConfig(level=clargs.level)
 
 if __name__ == "__main__":
     print(clargs)
