@@ -3,4 +3,5 @@ TODO
 .mypy_cache/
 .vscode/
 __pycache__/
+music/
 venv/
