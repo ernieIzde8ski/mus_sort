@@ -1,10 +1,11 @@
-from pathlib import Path
-from typing import Literal
-from tap import Tap, ArgumentError
 import logging
-logging._levelToName
+from pathlib import Path
+
+from tap import ArgumentError, Tap
+
 
 DEFAULT_IGNORED = (".git", "itunes")
+
 
 class Parser(Tap):
     dir: Path
@@ -30,7 +31,7 @@ class Parser(Tap):
     """Operate through hidden files & folders."""
     symlinks: bool = False
     """Operate through symlinks. Untested, so probably buggy."""
-    
+
     clean_after: bool = False
     """Delete empty folders afterwards."""
     delete_duplicates: bool = False
@@ -58,7 +59,7 @@ class Parser(Tap):
 
         # logging module weirdness
         self.add_argument("-l", "--level", type=self._get_level, choices=logging._nameToLevel)
-        
+
         # providing aliases
         self.add_argument("-i", "--ignored_paths")
         self.add_argument("-H", "--hidden")
@@ -66,8 +67,8 @@ class Parser(Tap):
         self.add_argument("-S", "--single_genre")
 
         # appending a line to --help
-        self.epilog = """This program sorts folders based on music file metadata. As such,
-        if your metadata is unruly, it's probably best to sort that out first."""
+        self.epilog = """This program sorts folders based on ID3 data. As such,
+        if the tags on your music are unruly, it's probably best to sort that out first."""
 
     def process_args(self) -> None:
         # making sure given directories exist
