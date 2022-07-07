@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 
+from .. import info
 from tap import ArgumentError, Tap
 
 DEFAULT_IGNORED = (".git", "itunes")
@@ -52,6 +53,10 @@ class ClargParser(Tap):
         raise ValueError(f"Name '{name}' is not a valid level!")
 
     def configure(self) -> None:
+        self.add_argument(
+            "-V", "--version", action="version", version=f"musort v{info.__version__}"
+        )
+
         # making the first argument positional, the second unrequired
         self.add_argument("dir")
         self.add_argument("-T", "--target", required=False)
