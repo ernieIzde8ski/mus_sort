@@ -1,8 +1,11 @@
+import contextlib
 import logging
 import textwrap
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from traceback import format_exception
+from types import TracebackType
+from typing import Callable, Iterable, Type
 
 from tinytag import TinyTag
 
@@ -10,15 +13,47 @@ from .clargparser import ClargParser, clargs
 from .locale import REPLACEMENTS, is_hidden
 
 
-Errors: list[tuple[Exception, str | None]] = []
+class Errors(list[tuple[str, str | None]]):
+    """Error handling. A list of tracebacks and posix-formatted paths."""
+
+    def log(
+        self,
+        exc_type: Type[BaseException],
+        exc_val: BaseException,
+        exc_tb: TracebackType,
+        path: Path | None = None,
+        level: int = logging.ERROR,
+    ):
+        posix = path.as_posix() if path is not None else None
+        self.append((f"{exc_type}: {exc_val}", posix))
+        if posix:
+            logging.log(level, "The following error occured while handling a path:", posix)
+        logging.log(level, format_exception(exc_type, exc_val, exc_tb))
+
+    def recap(self):
+        print("\nThe following errors occurred:\n")
+        for tb, p in self:
+            print("-------------\n")
+            if p:
+                print(f"Path: {p}\n")
+            print(tb)
 
 
-def log_error(exc: Exception, path: Path | None = None, level: int = logging.ERROR):
-    posix = path.as_posix() if path is not None else None
-    Errors.append((exc, posix))
-    if posix:
-        logging.log(level, "The following error occured while handling a path:", posix)
-    logging.log(level, f"{exc.__class__.__name__}")
+errors = Errors()
+
+
+class Suppress(contextlib.suppress):
+    def __init__(
+        self, *exceptions: type[BaseException], path: Path | None = None, errs_cls: Errors = errors
+    ) -> None:
+        self.path = path
+        self.errors = errs_cls
+        super().__init__(*exceptions)
+
+    def __exit__(self, *args):
+        if args[0] is not None:
+            self.errors.log(*args, path=self.path)
+        super().__exit__(*args)
 
 
 def is_ok(p: Path, /):
@@ -73,7 +108,7 @@ class MusicFile:
     """Track number."""
 
     @classmethod
-    def from_path(cls, path: Path, /):
+    def get(cls, path: Path, /):
         """Constructs an instance of MusicFile from a path to a music file."""
         tags = TinyTag.get(path)
         artist = tags.albumartist or tags.artist
@@ -124,7 +159,7 @@ class MusicFile:
         resp = tag.split(";")[0].strip()
         # remove characters that result in invalid filenames
         for s0, s1 in REPLACEMENTS:
-            resp.replace(s0, s1)
+            resp = resp.replace(s0, s1)
         # reducing the length of the string
         # the default being 70 is absolutely arbitrary
         return textwrap.fill(resp, width=max_size, placeholder="(…)", max_lines=1)
@@ -140,8 +175,18 @@ class MusicFile:
     def get_new_name(self) -> str:
         track = (str(self.track) if self.track else "").zfill(2)
         title = self.prepare_component(self.title, default="UNKNOWN_TRACK")
-        return f"{track} - {title}"
+        suffix = self.path.suffix.lower()
+        return f"{track} - {title}{suffix}"
 
     def get_new_path(self, target: Path = clargs.target) -> Path:
         """Shorthand for `MusicFile.get_new_dir(target) / MusicFile.get_new_name()`"""
         return self.get_new_dir(target) / self.get_new_name()
+
+
+def cleanup(dir: Path):
+    """Removes empty directories"""
+    for p in dir.iterdir():
+        if p.is_dir():
+            cleanup(p)
+    with contextlib.suppress(Exception):
+        dir.rmdir()

@@ -3,5 +3,8 @@ TODO
 .mypy_cache/
 .vscode/
 __pycache__/
+music
 music/
 venv/
+*.egg-info
+build/

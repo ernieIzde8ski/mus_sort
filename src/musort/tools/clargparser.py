@@ -22,7 +22,7 @@ class ClargParser(Tap):
     """
 
     level: int = logging.INFO
-    """Logging level."""
+    """Logging level. Accepts names from the logging module, eg 'debug' or 'info'."""
     ignored_paths: set[str] = set()
     """Ignored file/folder names. Case insensitive."""
 
@@ -33,8 +33,8 @@ class ClargParser(Tap):
 
     clean_after: bool = False
     """Delete empty folders afterwards."""
-    delete_duplicates: bool = False
-    """Delete files upon FileExistsError. If artist or album is None, the deletion is ignored."""
+    replace_duplicates: bool = False
+    """Replace existing paths upon FileExistsError. If artist or album is None, the replacement is ignored."""
     single_genre: bool = False
     """Force any given artist to stay in one genre folder."""
 
@@ -57,7 +57,7 @@ class ClargParser(Tap):
         self.add_argument("-T", "--target", required=False)
 
         # logging module weirdness
-        self.add_argument("-l", "--level", type=self._get_level, choices=logging._nameToLevel)
+        self.add_argument("-l", "--level", type=self._get_level, choices=(logging._levelToName))
 
         # providing aliases
         self.add_argument("-i", "--ignored_paths")
@@ -70,7 +70,7 @@ class ClargParser(Tap):
         if the tags on your music are unruly, it's probably best to sort that out first."""
 
     def process_args(self) -> None:
-        # making sure given directories exist
+        # ensure given directories exist
         self.dir = self.dir.resolve()
         self.target = self.dir if self.target is None else self.target.resolve()
         if not self.dir.is_dir():
@@ -80,6 +80,10 @@ class ClargParser(Tap):
 
         # making case insensitive
         self.ignored_paths = {*(i.lower() for i in self.ignored_paths), *DEFAULT_IGNORED}
+
+        # ensure at least one sort method is chosen
+        if not (self.file_mode or self.folder_mode):
+            raise ArgumentError(None, "Either --file-mode or --folder-mode should be active")
 
 
 clargs = ClargParser(underscores_to_dashes=True).parse_args()
