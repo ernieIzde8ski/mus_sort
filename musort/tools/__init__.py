@@ -10,7 +10,7 @@ from typing import Callable, Iterable, Type
 from tinytag import TinyTag
 
 from .clargparser import ClargParser, clargs
-from .locale import REPLACEMENTS, is_hidden
+from .os_locale import REPLACEMENTS, is_hidden
 
 
 class Errors(list[tuple[str, str | None]]):
