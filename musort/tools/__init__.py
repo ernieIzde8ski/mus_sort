@@ -27,8 +27,8 @@ class Errors(list[tuple[str, str | None]]):
         posix = path.as_posix() if path is not None else None
         self.append((f"{exc_type}: {exc_val}", posix))
         if posix:
-            logging.log(level, "The following error occured while handling a path:", posix)
-        logging.log(level, format_exception(exc_type, exc_val, exc_tb))
+            logging.log(level, f"The following error occured while handling a path: {posix}")
+        logging.log(level, "".join(format_exception(exc_type, exc_val, exc_tb)))
 
     def recap(self):
         print("\nThe following errors occurred:\n")
@@ -53,7 +53,7 @@ class Suppress(contextlib.suppress):
     def __exit__(self, *args):
         if args[0] is not None:
             self.errors.log(*args, path=self.path)
-        super().__exit__(*args)
+        return super().__exit__(*args)
 
 
 def is_ok(p: Path, /):
