@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+import sys
 
 from .. import info
 from tap import ArgumentError, Tap
@@ -92,7 +93,7 @@ class ClargParser(Tap):
 
 
 clargs = ClargParser(underscores_to_dashes=True).parse_args()
-logging.basicConfig(level=clargs.level)
+logging.basicConfig(level=clargs.level, stream=sys.stdout)
 
 if __name__ == "__main__":
     print(clargs)

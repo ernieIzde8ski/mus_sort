@@ -5,7 +5,7 @@ from tinytag.tinytag import TinyTagException
 from . import tools
 from .tools import MusicFile, clargs, logging, Suppress
 
-common_exceptions = TinyTagException, FileExistsError, PermissionError
+common_exceptions = TinyTagException, OSError
 
 
 def rename_file_in_place(path: Path) -> Path:
@@ -47,15 +47,22 @@ def sort_folder(music: MusicFile) -> None:
         new_dir.parent.mkdir(parents=True, exist_ok=True)
         dir.rename(new_dir)
         logging.info(f"Renamed {old_name} -> {new_dir.as_posix()}")
-    except FileExistsError:
+    except OSError as err:
         if not clargs.replace_duplicates:
             raise
-        # same comments as in rename_file_in_place apply
+
+        import errno
+        # the error must be either a) directory not empty or b) file already exists
+        if not (err.errno == errno.ENOTEMPTY or isinstance(err, FileExistsError)):
+            raise
+
         if not music.artist or not music.album:
             logging.debug(f"Ignoring possible duplicate at {old_name}", "ID3 tags may be missing")
             raise
+
         dir.replace(new_dir)
         logging.info(f"Replaced {old_name} -> {new_dir.as_posix()}")
+    
 
 
 def sort(dir: Path = clargs.dir, /) -> None:
