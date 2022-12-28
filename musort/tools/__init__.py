@@ -112,7 +112,11 @@ class MusicFile:
         """Constructs an instance of MusicFile from a path to a music file."""
         tags = TinyTag.get(path)
         artist = tags.albumartist or tags.artist
-        genre = cache.genre(artist, default=tags.genre) if clargs.single_genre and artist else tags.genre
+        genre = (
+            cache.genre(artist, default=tags.genre)
+            if clargs.single_genre and artist
+            else tags.genre
+        )
         track = int(tags.track) if tags.track and tags.track.isnumeric() else None
         return cls(
             tags=tags,

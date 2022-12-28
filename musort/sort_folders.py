@@ -52,6 +52,7 @@ def sort_folder(music: MusicFile) -> None:
             raise
 
         import errno
+
         # the error must be either a) directory not empty or b) file already exists
         if not (err.errno == errno.ENOTEMPTY or isinstance(err, FileExistsError)):
             raise
@@ -62,7 +63,6 @@ def sort_folder(music: MusicFile) -> None:
 
         dir.replace(new_dir)
         logging.info(f"Replaced {old_name} -> {new_dir.as_posix()}")
-    
 
 
 def sort(dir: Path = clargs.dir, /) -> None:

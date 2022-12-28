@@ -10,7 +10,7 @@ with open("requirements.txt") as file:
 version: str
 with open("musort/info.py") as file:
     # pattern "borrowed" from discord.py (with permission)
-    version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]', file.read(), re.MULTILINE)[1]
+    version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]', file.read(), re.MULTILINE)[1]  # type: ignore
 
 
 readme = pathlib.Path("README.md").read_text()
