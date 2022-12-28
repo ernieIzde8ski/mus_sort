@@ -2,8 +2,8 @@ help:
 	@echo 'usage: make <init|build|upload>'
 
 init: requirements-dev.txt requirements.txt
-	rm -r venv/
-	rm -r .git/hooks/*
+	-rm -r venv/
+	-rm -r .git/hooks/*
 	python3 -m venv venv
 	./venv/bin/pip3 install -r requirements-dev.txt
 	ln -rs .git-hooks/* .git/hooks/
