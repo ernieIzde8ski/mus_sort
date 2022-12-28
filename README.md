@@ -15,17 +15,10 @@ From source:
 ```sh
 git clone https://github.com/ernieIzde8ski/mus_sort/tree/module_v2.git mus_sort
 cd mus_sort
+# just installing
 python -m pip install -e .
-```
-
-Building from source:
-
-```bash
-git clone https://github.com/ernieIzde8ski/mus_sort/tree/module_v2.git mus_sort
-cd mus_sort
-python -m venv venv
-pip install -r requirements.txt
-./build.sh
+# building (linux)
+make init build
 ```
 
 ## Usage
