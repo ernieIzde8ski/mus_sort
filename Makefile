@@ -5,7 +5,7 @@ init: requirements-dev.txt requirements.txt
 	python3 -m venv venv
 	./venv/bin/pip3 install -r requirements-dev.txt
 
-build: setup.py musort/info.py
+build: setup.py src/musort/info.py
 	rm -r build/ dist/
 	python3 setup.py sdist bdist_wheel
 
