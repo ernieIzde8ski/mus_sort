@@ -1,10 +1,11 @@
+import errno
+import logging
 from pathlib import Path
 
 from tinytag.tinytag import TinyTagException
-import logging
 
 from . import tools
-from .tools import MusicFile, clargs, Suppress
+from .tools import MusicFile, Suppress, clargs
 
 common_exceptions = TinyTagException, OSError
 
@@ -34,36 +35,47 @@ def rename_file_in_place(path: Path) -> Path:
     return new_path
 
 
+def replace_folder(source: Path, target: Path):
+    for sfile in source.iterdir():
+        if sfile.is_symlink():
+            continue
+        tfile = target / sfile.name
+        if sfile.is_file():
+            sfile.replace(tfile)
+        elif sfile.is_dir():
+            tfile.mkdir(exist_ok=True)
+            replace_folder(sfile, tfile)
+
+
 def sort_folder(music: MusicFile) -> None:
     """Sort a folder containing a music file."""
-    dir = music.path.parent
-    old_name = dir.as_posix()
-    new_dir = music.get_new_dir()
+    source = music.path.parent
+    target = music.get_new_dir()
 
-    if dir == new_dir:
-        logging.debug(f"Directory at `{dir}` is equal to new directory, short-circuiting")
+    if source == target:
+        logging.debug(f"Directory at `{source}` is equal to new directory, short-circuiting")
         return
 
     try:
-        new_dir.parent.mkdir(parents=True, exist_ok=True)
-        dir.rename(new_dir)
-        logging.info(f"Renamed {old_name} -> {new_dir.as_posix()}")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        source.rename(target)
+        logging.info(f"Renamed {source.as_posix()} -> {target.as_posix()}")
     except OSError as err:
         if not clargs.replace_duplicates:
             raise
-
-        import errno
 
         # the error must be either a) directory not empty or b) file already exists
         if not (err.errno == errno.ENOTEMPTY or isinstance(err, FileExistsError)):
             raise
 
         if not music.artist or not music.album:
-            logging.debug(f"Ignoring possible duplicate at {old_name}", "ID3 tags may be missing")
+            logging.debug(
+                f"Ignoring possible duplicate at {source.as_posix()}; ID3 tags may be missing"
+            )
             raise
 
-        dir.replace(new_dir)
-        logging.info(f"Replaced {old_name} -> {new_dir.as_posix()}")
+        replace_folder(source, target)
+        logging.info(f"Replaced {source.as_posix()} -> {target.as_posix()}")
 
 
 def sort(dir: Path = clargs.dir, /) -> None:

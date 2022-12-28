@@ -46,9 +46,10 @@ Updates to build process, ease-of-access, and project layout.
 - add CHANGELOG
 - add pre-commit script for automatic `black` formatting
 - fix exception logging not being logged with severity `logging.ERROR`
+- fix --replace-duplicates param not working with folders in --folder-mode
 - modify requirements-dev.txt to depend on requirements.txt instead of vice versa
 - move musort/ once more to src/musort/
-  - add new musort script to root directory to enable calling either `python -m musort` or `musort`
+  - add new musort script to root directory, to enable calling either `python -m musort` or `musort`
 - move old master branch to original-branch, copy module_v2 into its place
 - remove build.sh in favor of Makefile
 - update setup.py, README.md to match all stated changes
