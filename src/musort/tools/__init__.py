@@ -3,13 +3,12 @@ import logging
 import textwrap
 from dataclasses import dataclass
 from pathlib import Path
-from traceback import format_exception
 from types import TracebackType
-from typing import Callable, Iterable, Type
+from typing import Iterable, Type
 
 from tinytag import TinyTag
 
-from .clargparser import ClargParser, clargs
+from .clargparser import clargs
 from .os_locale import REPLACEMENTS, is_hidden
 
 
@@ -22,18 +21,15 @@ class Errors(list[tuple[str, str | None]]):
         exc_val: BaseException,
         exc_tb: TracebackType,
         path: Path | None = None,
-        level: int = logging.ERROR,
     ):
         posix = path.as_posix() if path is not None else None
         self.append((f"{exc_type}: {exc_val}", posix))
-        if posix:
-            logging.log(level, f"The following error occured while handling a path: {posix}")
-        logging.log(level, "".join(format_exception(exc_type, exc_val, exc_tb)))
+        logging.exception(f"The following error occurred at: {posix}")
 
     def recap(self):
+        print("\n-------------")
         print("\nThe following errors occurred:\n")
         for tb, p in self:
-            print("-------------\n")
             if p:
                 print(f"Path: {p}\n")
             print(tb)
