@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+
+from subprocess import run as _shell, CompletedProcess
+import sys
+
+
+class ProcessError(Exception):
+    def __init__(self, process: CompletedProcess[str]) -> None:
+        super().__init__(f"Process exited with code {process.returncode}")
+        self.process = process
+
+
+def shell(*args: str):
+    proc = _shell(args, capture_output=True, encoding="UTF-8")
+    if proc.returncode != 0:
+        raise ProcessError(proc)
+    return proc
+
+
+def git_diff_lines(*extra_args: str):
+    proc = shell("git", "diff", "--name-only", *extra_args)
+    return set(proc.stdout.splitlines())
+
+
+# get git status
+unstaged_changes = git_diff_lines()
+staged_changes = git_diff_lines("--staged")
+
+# make black format files
+black = shell("black", ".")
+_bad_exit = False  # bools subclass int(0,1), so this is valid
+
+for line in black.stderr.splitlines():
+    if not line:
+        break
+    line = line.removeprefix("reformatted ")
+    print(line)
+    if line in staged_changes:
+        if line in unstaged_changes:
+            print("Formatted file with unstaged changes: ", line, file=sys.stderr)
+            _bad_exit = True
+            continue
+        print("Restaging file: ", line, file=sys.stderr)
+        shell("git", "add", line)
+
+exit(_bad_exit)
