@@ -39,17 +39,19 @@ Bug fixes.
 - modify --folder-mode sorting to catch all OSErrors, as opposed to just FileExistsError, PermissionError
 - move musort/locale/ to musort/os_locale/ so as to avoid conflict with the standard library
 
-## master : Unreleased - N/A
+## master : 0.1.0 - 2022.12.28
 
 Updates to build process, ease-of-access, and project layout.
+
+- add support for calling the script as either `python -m musort` or simply `-musort`
+- add support for reading config files in the current working directory
+- move old master branch to original-branch, copy module_v2 into its place
 
 - add CHANGELOG
 - add pre-commit script for automatic `black` formatting
 - fix exception logging not being logged with severity `logging.ERROR`
 - fix --replace-duplicates param not working with folders in --folder-mode
 - modify requirements-dev.txt to depend on requirements.txt instead of vice versa
-- move musort/ once more to src/musort/
-  - add new musort script to root directory, to enable calling either `python -m musort` or `musort`
-- move old master branch to original-branch, copy module_v2 into its place
+- move musort/ once more to src/musort/, to make script change possible
 - remove build.sh in favor of Makefile
 - update setup.py, README.md to match all stated changes
