@@ -24,3 +24,18 @@ make init build
 ## Usage
 
 See `python -m musort --help` for usage.
+
+If found in the present working directory, configuration files named either
+`musort.txt` or `mus_sort.txt` will be loaded. A sample is provided:
+
+```sh
+.
+# reorganize by folder and rename tracks
+--folder-mode --file-mode
+# ignore FileExistsError
+--replace-duplicates
+# remove emptied directories afterwards
+--clean-after
+# make sure each artist is not split across multiple folders
+--single-genre
+```

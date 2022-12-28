@@ -1,9 +1,10 @@
 import logging
-from pathlib import Path
 import sys
+from pathlib import Path
+
+from tap import ArgumentError, Tap
 
 from .. import info
-from tap import ArgumentError, Tap
 
 DEFAULT_IGNORED = (".git", "itunes")
 
@@ -92,7 +93,15 @@ class ClargParser(Tap):
             raise ArgumentError(None, "Either --file-mode or --folder-mode should be active")
 
 
-clargs = ClargParser(underscores_to_dashes=True).parse_args()
+def find_config_files(foldir: Path):
+    for path in foldir.iterdir():
+        if path.name.lower() in ["musort.txt", "mus_sort.txt"] and path.is_file():
+            yield path.name
+
+
+clargs = ClargParser(
+    underscores_to_dashes=True, config_files=list(find_config_files(Path()))
+).parse_args()
 logging.basicConfig(level=clargs.level, stream=sys.stdout)
 
 if __name__ == "__main__":
