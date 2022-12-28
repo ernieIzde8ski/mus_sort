@@ -1,0 +1,54 @@
+# Changelog
+
+## original-branch : unlabeled versions - 2021.10.17:2022.04.19
+
+Many things not worth going over, and pro8a8ly many more actively worth forgetting, but
+most importantly, music sorting. Probably the most severe flaw of this branch was being
+limited to a single folder, which modularization immediately rectified in the module_v2
+branch.
+
+## pypi-module : unlabeled versions - 2022.05.05
+
+A basic structure was developed and a sorting algorithm *was* written, but for whichever
+reasons, this attempt didn't work out. Several commits for it can be found
+[here.](https://github.com/ernieIzde8ski/mus_sort/compare/5fa2ee7d3d69%5E...33f326eab029)
+
+## module_v2 : 0.0.1 - 2022.07.07
+
+- add various files to make suitable as a module (README.md, pyproject.toml, etc)
+- create musort directory for library purposes:
+  - add command-line argument parsing via `typed-argument-parser`
+  - add various utility functions, classes for sorting
+  - add locale folder to support different operating systems (in theory)
+- implement --folder-mode sorting
+
+## module_v2 : 0.0.2 - 2022.07.07
+
+Modified module structure.
+
+- move src/musort/ to musort/
+- add musort/info.py for storing package information
+- add setup.py and build.sh scripts for packaging and uploading to PyPI
+
+## module_v2 : 0.0.3 - 2022.12.20
+
+Bug fixes.
+
+- fix exception logs not being printed due to extra argument
+- fix minor type issue in MusicFile.get arising from TinyTag.artist possibly being None
+- modify --folder-mode sorting to catch all OSErrors, as opposed to just FileExistsError, PermissionError
+- move musort/locale/ to musort/os_locale/ so as to avoid conflict with the standard library
+
+## master : Unreleased - N/A
+
+Updates to build process, ease-of-access, and project layout.
+
+- add CHANGELOG
+- add pre-commit script for automatic `black` formatting
+- fix exception logging not being logged with severity `logging.ERROR`
+- modify requirements-dev.txt to depend on requirements.txt instead of vice versa
+- move musort/ once more to src/musort/
+  - add new musort script to root directory to enable calling either `python -m musort` or `musort`
+- move old master branch to original-branch, copy module_v2 into its place
+- remove build.sh in favor of Makefile
+- update setup.py, README.md to match all stated changes
