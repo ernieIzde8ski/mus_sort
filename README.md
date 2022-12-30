@@ -25,8 +25,8 @@ make init build
 
 See `python -m musort --help` for usage.
 
-If found in the present working directory, configuration files named either
-`musort.txt` or `mus_sort.txt` will be loaded. A sample is provided:
+If found in the present working directory, configuration files named `musort-conf` or
+`musort_conf` will be loaded. A sample is provided:
 
 ```sh
 .

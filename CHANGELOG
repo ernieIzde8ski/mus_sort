@@ -55,3 +55,7 @@ Updates to build process, ease-of-access, and project layout.
 - move musort/ once more to src/musort/, to make script change possible
 - remove build.sh in favor of Makefile
 - update setup.py, README.md to match all stated changes
+
+## master : unreleased
+
+- add musort_conf, musort-conf to list of accepted configuration paths

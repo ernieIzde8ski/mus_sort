@@ -20,7 +20,7 @@ class ClargParser(Tap):
     file_mode: bool = False
     """Sort by moving individual music files around. Highly disrecommended if your metadata is
     inconsistent, or if you don't want to risk leaving album covers and the like behind.
-    
+
     Alternatively, when used in conjunction with folder-mode, files are renamed within their folders.
     """
 
@@ -93,9 +93,12 @@ class ClargParser(Tap):
             raise ArgumentError(None, "Either --file-mode or --folder-mode should be active")
 
 
+_VALID_CONFIGS = ("musort_conf", "musort-conf", "musort.txt", "mus_sort.txt")
+
+
 def find_config_files(foldir: Path):
     for path in foldir.iterdir():
-        if path.name.lower() in ["musort.txt", "mus_sort.txt"] and path.is_file():
+        if path.name.lower() in _VALID_CONFIGS and path.is_file():
             yield path.name
 
 
