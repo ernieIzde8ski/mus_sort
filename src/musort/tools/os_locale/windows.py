@@ -6,7 +6,7 @@ import ctypes
 from builtins import WindowsError
 from pathlib import Path
 
-REPLACEMENTS: tuple[tuple[str, str], ...] = (
+REPLACEMENTS: list[tuple[str, str]] = [
     ("<", "≺"),
     (">", "≻"),
     ('"', "'"),
@@ -15,7 +15,7 @@ REPLACEMENTS: tuple[tuple[str, str], ...] = (
     ("?", "﹖"),
     ("*", "⋆"),
     ("\\", ""),
-)
+]
 """Character replacements to ensure file names don't break under Windows."""
 
 

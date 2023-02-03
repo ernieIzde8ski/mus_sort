@@ -59,3 +59,4 @@ Updates to build process, ease-of-access, and project layout.
 ## master : unreleased
 
 - add musort_conf, musort-conf to list of accepted configuration paths
+- add --use-dashes param

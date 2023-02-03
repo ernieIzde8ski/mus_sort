@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-REPLACEMENTS: tuple[tuple[str, str], ...] = (("/", "⁄"),)
+REPLACEMENTS: list[tuple[str, str]] = [("/", "⁄"),]
 """Character replacements to ensure file names don't break under Linux."""
 
 

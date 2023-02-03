@@ -40,6 +40,8 @@ class ClargParser(Tap):
     """Replace existing paths upon FileExistsError. If artist or album is None, the replacement is ignored."""
     single_genre: bool = False
     """Force any given artist to stay in one genre folder."""
+    use_dashes: bool = False
+    """Replace slashes with dashes in paths."""
 
     @staticmethod
     def _get_level(name: str):
