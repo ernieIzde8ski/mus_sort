@@ -158,7 +158,7 @@ class MusicFile:
         # sometimes a genre tag is actually multiple genres split by semicolons
         resp = tag.split(";")[0].strip()
         # remove characters that result in invalid filenames
-        for s0, s1 in REPLACEMENTS:
+        for s0, s1 in REPLACEMENTS.items():
             resp = resp.replace(s0, s1)
         # reducing the length of the string
         # the default being 70 is absolutely arbitrary

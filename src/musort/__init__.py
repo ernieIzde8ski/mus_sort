@@ -6,8 +6,7 @@ def run():
     from .tools import clargs, cleanup, errors, REPLACEMENTS
 
     if clargs.use_dashes:
-        slash_index = next(i for i, v in enumerate(REPLACEMENTS) if v[0] == "/")
-        REPLACEMENTS[slash_index] = ("/", "-")
+        REPLACEMENTS["/"] = "-"
 
     if clargs.folder_mode:
         from .sort_folders import sort
