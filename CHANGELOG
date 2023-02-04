@@ -60,3 +60,4 @@ Updates to build process, ease-of-access, and project layout.
 
 - add musort_conf, musort-conf to list of accepted configuration paths
 - add --use-dashes param
+- remove .mp4 from list of file suffixes, as it's mostly used for video

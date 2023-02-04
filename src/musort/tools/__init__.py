@@ -138,7 +138,6 @@ class MusicFile:
         ".m4b",
         ".m4a",
         ".m4r",
-        ".mp4",
         ".aiff",
         ".aifc",
         ".aif",
