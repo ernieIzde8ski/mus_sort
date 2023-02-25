@@ -9,7 +9,7 @@ init: requirements-dev.txt requirements.txt
 	ln -rs .git-hooks/* .git/hooks/
 
 build: setup.py src/musort/info.py
-	rm -r build/ dist/
+	-rm -r build/ dist/
 	python3 setup.py sdist bdist_wheel
 
 upload: build/ dist/
