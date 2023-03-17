@@ -58,6 +58,8 @@ def sort_folder(music: MusicFile) -> None:
 
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists():
+            raise FileExistsError(str(target))
         source.rename(target)
         logging.info(f"Renamed {source.as_posix()} -> {target.as_posix()}")
     except OSError as err:
