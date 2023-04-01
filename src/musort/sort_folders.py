@@ -82,6 +82,12 @@ def sort_folder(music: MusicFile) -> None:
 
 def sort(dir: Path = clargs.dir, /) -> None:
     """Sort a given folder and all subfolders."""
+
+    # folders containing a .musort_ignore file are unconditionally skipped
+    if (dir / ".musort_ignore").exists():
+        logging.debug(f"short-circuiting, .musort_ignore file found in {dir}")
+        return
+
     music_path: Path | None = None
 
     for path in tools.iterdir(dir):

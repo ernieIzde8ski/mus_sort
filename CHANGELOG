@@ -62,3 +62,4 @@ Updates to build process, ease-of-access, and project layout.
 - add --use-dashes param
 - fix files already existing possibly being ignored
 - remove .mp4 from list of file suffixes, as it's mostly used for video
+- modify --folder-mode to ignore folders containing a .musort_ignore file
