@@ -19,7 +19,8 @@ def run():
     logging.info("Done sorting!")
 
     if clargs.clean_after:
-        cleanup(clargs.dir)
+        for dir in clargs.dirs:
+            cleanup(dir)
         logging.info("Done cleaning!")
 
     if errors:

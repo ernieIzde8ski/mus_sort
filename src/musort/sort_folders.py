@@ -47,7 +47,7 @@ def replace_folder(source: Path, target: Path):
             replace_folder(sfile, tfile)
 
 
-def sort_folder(music: MusicFile) -> None:
+def sort_music_folder(music: MusicFile) -> None:
     """Sort a folder containing a music file."""
     source = music.path.parent
     target = music.get_new_dir()
@@ -80,7 +80,7 @@ def sort_folder(music: MusicFile) -> None:
         logging.info(f"Replaced {source.as_posix()} -> {target.as_posix()}")
 
 
-def sort(dir: Path = clargs.dir, /) -> None:
+def sort_folder(dir: Path) -> None:
     """Sort a given folder and all subfolders."""
 
     # folders containing a .musort_ignore file are unconditionally skipped
@@ -107,4 +107,12 @@ def sort(dir: Path = clargs.dir, /) -> None:
 
     if music_path is not None:
         with Suppress(*common_exceptions, path=music_path):
-            sort_folder(MusicFile.get(music_path))
+            sort_music_folder(MusicFile.get(music_path))
+
+
+def sort(*dirs: Path):
+    for dir in dirs:
+        if not dir.is_dir():
+            logging.error(f"error: path is not a directory: {dir}")
+        else:
+            sort_folder(dir)

@@ -10,10 +10,12 @@ DEFAULT_IGNORED = (".git", "itunes")
 
 
 class ClargParser(Tap):
-    dir: Path
+    dirs: list[Path]
     """Folder to sort from."""
     target: Path
-    """Folder sorted into. Defaults to the folder positional argument."""
+    """Folder sorted into.
+    If not present, defaults to the folder containing the first config file found, or the
+    folder being sorted from if no config files were found."""
 
     folder_mode: bool = False
     """Sort by moving entire folders around at a time. Useful if your music is already sorted per-album."""
@@ -43,6 +45,12 @@ class ClargParser(Tap):
     use_dashes: bool = False
     """Replace slashes with dashes in paths."""
 
+
+    def _load_from_config_files(self, config_files: list[str] | None):
+        "override to save config file list to a private attribute"
+        self.config_files: list[str] = config_files if config_files else list()
+        return super()._load_from_config_files(config_files=config_files)
+
     @staticmethod
     def _get_level(name: str):
         """Get logging level from a string."""
@@ -62,7 +70,7 @@ class ClargParser(Tap):
         )
 
         # making the first argument positional, the second unrequired
-        self.add_argument("dir")
+        self.add_argument("dirs", nargs='+')
         self.add_argument("-T", "--target", required=False)
 
         # logging module weirdness
@@ -74,18 +82,20 @@ class ClargParser(Tap):
         self.add_argument("-C", "--clean_after")
         self.add_argument("-S", "--single_genre")
 
-        # appending a line to --help
-        self.epilog = """This program sorts folders based on ID3 data. As such,
-        if the tags on your music are unruly, it's probably best to sort that out first."""
-
     def process_args(self) -> None:
         # ensure given directories exist
-        self.dir = self.dir.resolve()
-        self.target = self.dir if self.target is None else self.target.resolve()
-        if not self.dir.is_dir():
-            raise ArgumentError(None, "dir parameter must be a valid directory!")
-        elif not self.target.is_dir():
-            raise ArgumentError(None, "target parameter must be a valid directory!")
+        if not self.dirs:
+            raise ArgumentError(None, "")
+        if self.target is None:
+            if self.config_files:
+                self.target = Path(self.config_files[0]).parent
+            else:
+                self.target = self.dirs[0]
+
+        if not self.target.is_dir():
+            raise ArgumentError(
+                None, "target parameter must be a valid directory! got: " + str(self.target)
+            )
 
         # making case insensitive
         self.ignored_paths = {*(i.lower() for i in self.ignored_paths), *DEFAULT_IGNORED}
@@ -98,16 +108,28 @@ class ClargParser(Tap):
 _VALID_CONFIGS = ("musort_conf", "musort-conf", "musort.txt", "mus_sort.txt")
 
 
-def find_config_files(foldir: Path):
-    for path in foldir.iterdir():
-        if path.name.lower() in _VALID_CONFIGS and path.is_file():
-            yield path.name
+def find_config_file(folder: Path = Path.cwd()) -> Path | None:
+    for config_name in _VALID_CONFIGS:
+        path = folder / config_name
+        if path.is_file():
+            return path
+
+    # for root directory, path.parent == path
+    if folder.parent != folder:
+        return find_config_file(folder.parent)
 
 
+config = find_config_file()
 clargs = ClargParser(
-    underscores_to_dashes=True, config_files=list(find_config_files(Path()))
+    underscores_to_dashes=True,
+    config_files=[str(config)] if config else None,
+    epilog=(
+        "This program sorts folders based on ID3 data. "
+        "So, if the tags on your music are unruly, "
+        "it's probably best to sort that out first."
+    ),
 ).parse_args()
+
 logging.basicConfig(level=clargs.level, stream=sys.stdout)
 
-if __name__ == "__main__":
-    print(clargs)
+logging.debug(f"current command-line arguments:\n{clargs}")

@@ -63,3 +63,6 @@ Updates to build process, ease-of-access, and project layout.
 - fix files already existing possibly being ignored
 - remove .mp4 from list of file suffixes, as it's mostly used for video
 - modify --folder-mode to ignore folders containing a .musort_ignore file
+- modify config searching to find only one file and possibly in parent directories
+- modify target directory to default to the directory of the first found config file
+- add support for sorting multiple folders at a time by making positional argument a list
