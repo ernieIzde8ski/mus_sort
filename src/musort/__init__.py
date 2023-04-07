@@ -15,7 +15,7 @@ def run():
     else:
         raise RuntimeError("This shouldn't happen")
 
-    sort()
+    sort(*clargs.dirs)
     logging.info("Done sorting!")
 
     if clargs.clean_after:
