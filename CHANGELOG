@@ -56,7 +56,7 @@ Updates to build process, ease-of-access, and project layout.
 - remove build.sh in favor of Makefile
 - update setup.py, README.md to match all stated changes
 
-## master : unreleased
+## master : 0.2.0 - 2023.04.11
 
 - add musort_conf, musort-conf to list of accepted configuration paths
 - add --use-dashes param
