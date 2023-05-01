@@ -66,3 +66,7 @@ Updates to build process, ease-of-access, and project layout.
 - modify config searching to find only one file and possibly in parent directories
 - modify target directory to default to the directory of the first found config file
 - add support for sorting multiple folders at a time by making positional argument a list
+
+## master : unreleased
+
+- fix Errors.recap not referring to exception type by name

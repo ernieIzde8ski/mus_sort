@@ -7,6 +7,7 @@ from tinytag.tinytag import TinyTagException
 from . import tools
 from .tools import MusicFile, Suppress, clargs
 
+
 common_exceptions = TinyTagException, OSError
 
 
@@ -75,7 +76,6 @@ def sort_music_folder(music: MusicFile) -> None:
                 f"Ignoring possible duplicate at {source.as_posix()}; ID3 tags may be missing"
             )
             raise
-
         replace_folder(source, target)
         logging.info(f"Replaced {source.as_posix()} -> {target.as_posix()}")
 

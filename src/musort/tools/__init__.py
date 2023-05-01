@@ -23,15 +23,15 @@ class Errors(list[tuple[str, str | None]]):
         path: Path | None = None,
     ):
         posix = path.as_posix() if path is not None else None
-        self.append((f"{exc_type}: {exc_val}", posix))
+        self.append((f"{exc_type.__name__}: {exc_val}", posix))
         logging.exception(f"The following error occurred at: {posix}")
 
     def recap(self):
-        print("\n-------------")
+        print("\n" + ("─" * 30))
         print("\nThe following errors occurred:\n")
         for tb, p in self:
             if p:
-                print(f"Path: {p}\n")
+                print(f"Path: {p}")
             print(tb)
 
 
@@ -39,6 +39,8 @@ errors = Errors()
 
 
 class Suppress(contextlib.suppress):
+    """Overload to contextlib.suppress to also log to `errors` object."""
+
     def __init__(
         self, *exceptions: type[BaseException], path: Path | None = None, errs_cls: Errors = errors
     ) -> None:

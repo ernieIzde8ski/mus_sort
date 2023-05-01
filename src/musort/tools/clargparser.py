@@ -45,7 +45,6 @@ class ClargParser(Tap):
     use_dashes: bool = False
     """Replace slashes with dashes in paths."""
 
-
     def _load_from_config_files(self, config_files: list[str] | None):
         "override to save config file list to a private attribute"
         self.config_files: list[str] = config_files if config_files else list()
@@ -70,7 +69,7 @@ class ClargParser(Tap):
         )
 
         # making the first argument positional, the second unrequired
-        self.add_argument("dirs", nargs='+')
+        self.add_argument("dirs", nargs="+")
         self.add_argument("-T", "--target", required=False)
 
         # logging module weirdness
