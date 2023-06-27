@@ -184,10 +184,10 @@ class MusicFile:
         return self.get_new_dir(target) / self.get_new_name()
 
 
-def cleanup(dir: Path):
+def cleanup(dirs: Iterable[Path]):
     """Removes empty directories"""
-    for p in dir.iterdir():
-        if p.is_dir():
-            cleanup(p)
-    with contextlib.suppress(Exception):
-        dir.rmdir()
+    for dir in dirs:
+        if dir.is_dir():
+            cleanup(dir.iterdir())
+            with contextlib.suppress(Exception):
+                dir.rmdir()

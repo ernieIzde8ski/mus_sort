@@ -70,3 +70,4 @@ Updates to build process, ease-of-access, and project layout.
 ## master : unreleased
 
 - fix Errors.recap not referring to exception type by name
+- fix rare FileNotFoundError in tools.cleanup function
