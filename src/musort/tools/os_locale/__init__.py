@@ -1,7 +1,6 @@
 import logging
 from platform import system
 
-
 SYSTEM = system()
 
 if SYSTEM == "Windows":

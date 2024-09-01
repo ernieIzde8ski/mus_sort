@@ -3,7 +3,8 @@ from .info import *
 
 def run():
     import logging
-    from .tools import clargs, cleanup, errors, REPLACEMENTS
+
+    from .tools import REPLACEMENTS, clargs, cleanup, errors
 
     if clargs.use_dashes:
         REPLACEMENTS["/"] = "-"

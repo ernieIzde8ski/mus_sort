@@ -7,7 +7,6 @@ from tinytag.tinytag import TinyTagException
 from . import tools
 from .tools import MusicFile, Suppress, clargs
 
-
 common_exceptions = TinyTagException, OSError
 
 
@@ -29,7 +28,9 @@ def rename_file_in_place(path: Path) -> Path:
         # you can accidentally delete a bunch of files if it all has no ID3 tags whatsoever,
         # so this prevents that
         if not music.track or not music.title:
-            logging.debug(f"Ignoring possible duplicate at {old_name}", "ID3 tags may be missing")
+            logging.debug(
+                f"Ignoring possible duplicate at {old_name}", "ID3 tags may be missing"
+            )
             raise
         path.replace(new_path)
         logging.info(f"Replaced {old_name} -> {new_path.as_posix()}")
@@ -54,7 +55,9 @@ def sort_music_folder(music: MusicFile) -> None:
     target = music.get_new_dir()
 
     if source == target:
-        logging.debug(f"Directory at `{source}` is equal to new directory, short-circuiting")
+        logging.debug(
+            f"Directory at `{source}` is equal to new directory, short-circuiting"
+        )
         return
 
     try:

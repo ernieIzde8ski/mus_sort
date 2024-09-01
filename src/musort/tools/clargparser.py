@@ -73,7 +73,9 @@ class ClargParser(Tap):
         self.add_argument("-T", "--target", required=False)
 
         # logging module weirdness
-        self.add_argument("-l", "--level", type=self._get_level, choices=(logging._levelToName))
+        self.add_argument(
+            "-l", "--level", type=self._get_level, choices=(logging._levelToName)
+        )
 
         # providing aliases
         self.add_argument("-i", "--ignored_paths")
@@ -93,7 +95,8 @@ class ClargParser(Tap):
 
         if not self.target.is_dir():
             raise ArgumentError(
-                None, "target parameter must be a valid directory! got: " + str(self.target)
+                None,
+                "target parameter must be a valid directory! got: " + str(self.target),
             )
 
         # making case insensitive
@@ -101,7 +104,9 @@ class ClargParser(Tap):
 
         # ensure at least one sort method is chosen
         if not (self.file_mode or self.folder_mode):
-            raise ArgumentError(None, "Either --file-mode or --folder-mode should be active")
+            raise ArgumentError(
+                None, "Either --file-mode or --folder-mode should be active"
+            )
 
 
 _VALID_CONFIGS = ("musort_conf", "musort-conf", "musort.txt", "mus_sort.txt")

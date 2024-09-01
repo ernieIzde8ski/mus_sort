@@ -1,18 +1,26 @@
 #!/usr/bin/env python3
 
-from pathlib import Path
 import re
-from typing import Iterable
+from collections.abc import Iterable
+from pathlib import Path
+
 from setuptools import find_packages, setup
 
 requirements: Iterable[str]
+version: str
+
 with open("requirements.txt", "r") as file:
     # we use str.splitlines instead of TextIOWrapper.readlines because it strips trailing newlines
     requirements = file.read().splitlines()
 
 with open("src/musort/info.py", "r") as file:
     # pattern "borrowed" from discord.py (with permission)
-    version: str = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]', file.read(), re.MULTILINE)[1]  # type: ignore
+    match = re.search(
+        r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]', file.read(), re.MULTILINE
+    )
+    if match is None:
+        raise RuntimeError("couldn't grep __version__ from info file")
+    version = match[1]
 
 readme = Path("README.md").read_text()
 

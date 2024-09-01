@@ -42,7 +42,10 @@ class Suppress(contextlib.suppress):
     """Overload to contextlib.suppress to also log to `errors` object."""
 
     def __init__(
-        self, *exceptions: type[BaseException], path: Path | None = None, errs_cls: Errors = errors
+        self,
+        *exceptions: type[BaseException],
+        path: Path | None = None,
+        errs_cls: Errors = errors,
     ) -> None:
         self.path = path
         self.errors = errs_cls

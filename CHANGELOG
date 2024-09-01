@@ -71,3 +71,8 @@ Updates to build process, ease-of-access, and project layout.
 
 - fix Errors.recap not referring to exception type by name
 - fix rare FileNotFoundError in tools.cleanup function
+- fix `setuptools` missing from `requirements-dev.txt`
+- removed `black` from `requirements-dev.txt`
+- add `.pre-commit-config.yaml`, `.editorconfig` files for devs
+  - update formatting with `pre-commit`
+- update tooling in `pyproject.toml`
