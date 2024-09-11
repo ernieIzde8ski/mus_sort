@@ -76,3 +76,7 @@ Updates to build process, ease-of-access, and project layout.
 - add `.pre-commit-config.yaml`, `.editorconfig` files for devs
   - update formatting with `pre-commit`
 - update tooling in `pyproject.toml`
+- remove `musort` script
+- add `entry_points` field in call to `setup` function
+- add some more typing support
+- add (incomplete) type stubs for tinytag

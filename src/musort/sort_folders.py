@@ -1,6 +1,7 @@
 import errno
 import logging
 from pathlib import Path
+from typing import Optional
 
 from tinytag.tinytag import TinyTagException
 
@@ -20,7 +21,7 @@ def rename_file_in_place(path: Path) -> Path:
         return path
 
     try:
-        path.rename(new_path)
+        _ = path.rename(new_path)
         logging.info(f"Renamed {old_name} -> {new_path.as_posix()}")
     except FileExistsError:
         if not clargs.replace_duplicates:
@@ -32,7 +33,7 @@ def rename_file_in_place(path: Path) -> Path:
                 f"Ignoring possible duplicate at {old_name}", "ID3 tags may be missing"
             )
             raise
-        path.replace(new_path)
+        _ = path.replace(new_path)
         logging.info(f"Replaced {old_name} -> {new_path.as_posix()}")
     return new_path
 
@@ -43,7 +44,7 @@ def replace_folder(source: Path, target: Path):
             continue
         tfile = target / sfile.name
         if sfile.is_file():
-            sfile.replace(tfile)
+            _ = sfile.replace(tfile)
         elif sfile.is_dir():
             tfile.mkdir(exist_ok=True)
             replace_folder(sfile, tfile)
@@ -64,7 +65,7 @@ def sort_music_folder(music: MusicFile) -> None:
         target.parent.mkdir(parents=True, exist_ok=True)
         if target.exists():
             raise FileExistsError(str(target))
-        source.rename(target)
+        _ = source.rename(target)
         logging.info(f"Renamed {source.as_posix()} -> {target.as_posix()}")
     except OSError as err:
         if not clargs.replace_duplicates:
@@ -91,7 +92,7 @@ def sort_folder(dir: Path) -> None:
         logging.debug(f"short-circuiting, .musort_ignore file found in {dir}")
         return
 
-    music_path: Path | None = None
+    music_path: Optional[Path] = None
 
     for path in tools.iterdir(dir):
         if path.is_dir():

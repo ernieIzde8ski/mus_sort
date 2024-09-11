@@ -1,5 +1,5 @@
 # dummy file to make `python -m musort` possible
 
-from musort import run
+from musort.app import run
 
 run()

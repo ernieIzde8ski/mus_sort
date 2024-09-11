@@ -1,7 +1,5 @@
 from pathlib import Path
 
-from .tools import clargs
 
-
-def sort(*paths: Path) -> None:
+def sort(*_paths: Path) -> None:
     raise NotImplementedError

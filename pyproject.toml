@@ -13,4 +13,4 @@ line_length = 90
 
 [tool.basedpyright]
 reportImplicitStringConcatenation = false
-reportUnknownMemberType = false
+pythonVersion = "3.9"

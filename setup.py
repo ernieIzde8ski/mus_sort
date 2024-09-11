@@ -4,7 +4,7 @@ import re
 from collections.abc import Iterable
 from pathlib import Path
 
-from setuptools import find_packages, setup
+from setuptools import find_packages, setup  # pyright: ignore[reportUnknownVariableType]
 
 requirements: Iterable[str]
 version: str
@@ -24,7 +24,7 @@ with open("src/musort/info.py", "r") as file:
 
 readme = Path("README.md").read_text()
 
-setup(
+_ = setup(
     name="musort",
     author="Ernest Izdebski",
     url="https://github.com/ernieIzde8ski/mus_sort",
@@ -38,7 +38,6 @@ setup(
     include_package_data=True,
     install_requires=requirements,
     python_requires=">=3.9.0",
-    scripts=["musort"],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "License :: OSI Approved :: MIT License",
@@ -50,4 +49,5 @@ setup(
         "Topic :: Utilities",
         "Typing :: Typed",
     ],
+    entry_points={"console_scripts": ["musort = musort.app:run"]},
 )
