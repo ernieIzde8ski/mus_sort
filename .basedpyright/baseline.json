@@ -1,15 +1,5 @@
 {
     "files": {
-        "./setup.py": [
-            {
-                "code": "reportUnnecessaryTypeIgnoreComment",
-                "range": {
-                    "startColumn": 63,
-                    "endColumn": 88,
-                    "lineCount": 1
-                }
-            }
-        ],
         "./src/musort/tools/__init__.py": [
             {
                 "code": "reportUnannotatedClassAttribute",

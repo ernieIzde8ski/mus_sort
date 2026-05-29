@@ -4,7 +4,7 @@ import re
 from collections.abc import Iterable
 from pathlib import Path
 
-from setuptools import find_packages, setup  # pyright: ignore[reportUnknownVariableType]
+from setuptools import find_packages, setup
 
 requirements: Iterable[str]
 version: str
