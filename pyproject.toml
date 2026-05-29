@@ -1,9 +1,51 @@
-[project]
-requires-python = ">=3.12"
-
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "musort"
+description = "A music-sorting package."
+authors = [
+    { name = "Ernie Izdebski", email = "izdebski@andrews.edu" },
+]
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = [
+    "tinytag>=1.8.1",
+    "typed-argument-parser>=1.7.2",
+]
+requires-python = ">=3.12"
+dynamic = ["version", "readme"]
+classifiers=[
+    "Development Status :: 5 - Production/Stable",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Utilities",
+    "Typing :: Typed",
+]
+
+[project.scripts]
+musort = "musort.app:run"
+
+[project.urls]
+Repository = "https://github.com/ernieIzde8ski/mus_sort"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.dynamic]
+version = {attr = "musort.info.__version__"}
+readme = { file = ["README.md"] }
+
+[dependency-groups]
+dev = [
+    "wheel>=0.37.1",
+    "twine>=4.0.1",
+    "setuptools>=74.0.0",
+]
 
 [tool.ruff]
 line-length = 90

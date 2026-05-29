@@ -1,4 +1,0 @@
-wheel>=0.37.1
-twine>=4.0.1
-setuptools>=74.0.0
--r requirements.txt
