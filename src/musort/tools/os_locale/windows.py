@@ -3,8 +3,9 @@
 # Secondly, Windows
 
 import ctypes
-from builtins import WindowsError
 from pathlib import Path
+
+__all__ = ["REPLACEMENTS", "is_hidden"]
 
 REPLACEMENTS: dict[str, str] = {
     "<": "≺",
@@ -22,5 +23,5 @@ REPLACEMENTS: dict[str, str] = {
 def is_hidden(p: Path, /):
     resp: int = ctypes.windll.kernel32.GetFileAttributesW(str(p))
     if resp == -1:
-        raise WindowsError
+        raise OSError
     return resp & 2

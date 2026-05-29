@@ -5,10 +5,9 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
-from typing import Optional
+from typing import override
 
 from tinytag import TinyTag
-from typing_extensions import override
 
 from .clargparser import clargs
 from .os_locale import REPLACEMENTS, is_hidden
@@ -28,7 +27,7 @@ __all__ = [
 ]
 
 
-class Errors(list[tuple[str, Optional[str]]]):
+class Errors(list[tuple[str, str | None]]):
     """Error handling. A list of tracebacks and posix-formatted paths."""
 
     def log(
@@ -36,7 +35,7 @@ class Errors(list[tuple[str, Optional[str]]]):
         exc_type: type[BaseException],
         exc_val: BaseException,
         _exc_tb: TracebackType,
-        path: Optional[Path] = None,
+        path: Path | None = None,
     ):
         posix = path.as_posix() if path is not None else None
         self.append((f"{exc_type.__name__}: {exc_val}", posix))
@@ -60,7 +59,7 @@ class Suppress(contextlib.suppress):
     def __init__(
         self,
         *exceptions: type[BaseException],
-        path: Optional[Path] = None,
+        path: Path | None = None,
         errs_cls: Errors = errors,
     ) -> None:
         self.path = path
@@ -70,9 +69,9 @@ class Suppress(contextlib.suppress):
     @override
     def __exit__(
         self,
-        exc_type: Optional[type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ):
 
         if exc_type is not None and exc_val is not None and exc_tb is not None:
@@ -98,11 +97,11 @@ def iterdir(dir: Path, /) -> Iterable[Path]:
 
 
 class cache:
-    _genre: dict[str, Optional[str]] = {}
+    _genre: dict[str, str | None] = {}
     """Mapping of artist name to genre. Unused if --single-genre is disabled."""
 
     @classmethod
-    def genre(cls, artist: str, default: Optional[str]):
+    def genre(cls, artist: str, default: str | None):
         """Retrieve an item from the cache."""
         if not clargs.single_genre:
             return default
@@ -122,13 +121,13 @@ class MusicFile:
     path: Path
     """Path to the file."""
 
-    genre: Optional[str] = None
-    artist: Optional[str] = None
-    album: Optional[str] = None
-    year: Optional[str] = None
-    title: Optional[str] = None
+    genre: str | None = None
+    artist: str | None = None
+    album: str | None = None
+    year: str | None = None
+    title: str | None = None
     """Name of the track."""
-    track: Optional[int] = None
+    track: int | None = None
     """Track number."""
 
     @classmethod
@@ -178,9 +177,7 @@ class MusicFile:
         return path.is_file() and path.suffix.lower() in cls._FILE_SUFFIXES
 
     @staticmethod
-    def prepare_component(
-        tag: Optional[str], default: str = "UNKNOWN", max_size: int = 70
-    ):
+    def prepare_component(tag: str | None, default: str = "UNKNOWN", max_size: int = 70):
         """Prepare a TinyTag component for being used as a file path."""
         if not tag:
             return default

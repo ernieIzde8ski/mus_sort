@@ -1,10 +1,16 @@
+[project]
+requires-python = ">=3.12"
+
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.black]
+[tool.ruff]
 line-length = 90
-target-version = ["py39", "py310", "py311", "py312"]
+
+[tool.ruff.format]
+docstring-code-format = true
+line-ending = "lf"
 skip-magic-trailing-comma = true
 
 [tool.isort]
@@ -13,4 +19,4 @@ line_length = 90
 
 [tool.basedpyright]
 reportImplicitStringConcatenation = false
-pythonVersion = "3.9"
+pythonVersion = "3.12"

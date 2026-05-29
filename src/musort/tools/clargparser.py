@@ -1,10 +1,16 @@
+# pyright: reportUninitializedInstanceVariable = false
 import logging
+import os
 import sys
+from collections.abc import Iterable
 from pathlib import Path
+from typing import override
 
 from tap import ArgumentError, Tap
 
 from .. import info
+
+type PathLike = os.PathLike[str] | str
 
 DEFAULT_IGNORED = (".git", "itunes")
 
@@ -45,10 +51,13 @@ class ClargParser(Tap):
     use_dashes: bool = False
     """Replace slashes with dashes in paths."""
 
-    def _load_from_config_files(self, config_files: list[str] | None):
+    @override
+    def _load_from_config_files(self, config_files: Iterable[str | PathLike] | None):
         "override to save config file list to a private attribute"
-        self.config_files: list[str] = config_files if config_files else list()
-        return super()._load_from_config_files(config_files=config_files)
+        self.config_files: list[PathLike] = []
+        if config_files is not None:
+            self.config_files = list(config_files)
+        return super()._load_from_config_files(config_files=config_files)  # pyright: ignore[reportUnknownMemberType]
 
     @staticmethod
     def _get_level(name: str):
