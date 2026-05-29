@@ -1,17 +1,11 @@
 def run():
     import logging
 
+    from .sort import sort
     from .tools import REPLACEMENTS, clargs, cleanup, errors
 
     if clargs.use_dashes:
         REPLACEMENTS["/"] = "-"
-
-    if clargs.folder_mode:
-        from .sort_folders import sort
-    elif clargs.file_mode:
-        from .sort_files import sort
-    else:
-        raise RuntimeError("This shouldn't happen")
 
     sort(*clargs.dirs)
     logging.info("Done sorting!")

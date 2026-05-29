@@ -9,7 +9,7 @@ branch.
 
 ## pypi-module : unlabeled versions - 2022.05.05
 
-A basic structure was developed and a sorting algorithm *was* written, but for whichever
+A basic structure was developed and a sorting algorithm _was_ written, but for whichever
 reasons, this attempt didn't work out. Several commits for it can be found
 [here.](https://github.com/ernieIzde8ski/mus_sort/compare/5fa2ee7d3d69%5E...33f326eab029)
 
@@ -79,4 +79,6 @@ Updates to build process, ease-of-access, and project layout.
 - remove `musort` script
 - add `entry_points` field in call to `setup` function
 - add some more typing support
-- add (incomplete) type stubs for tinytag
+  - add (incomplete) type stubs for tinytag
+- remove --folder-mode
+- replace --file-mode with --keep-directories

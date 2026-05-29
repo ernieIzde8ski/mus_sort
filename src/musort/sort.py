@@ -96,9 +96,9 @@ def sort_folder(dir: Path) -> None:
     for path in tools.iterdir(dir):
         if path.is_dir():
             sort(path)
-        elif (clargs.file_mode or not music_path) and MusicFile.is_music(path):
+        elif (clargs.keep_directories or not music_path) and MusicFile.is_music(path):
             path = path.resolve()
-            if clargs.file_mode:
+            if clargs.keep_directories:
                 with Suppress(*common_exceptions, path=path):
                     music_path = rename_file_in_place(path)
                     logging.debug(f"Assigned music_path value to {music_path.as_posix()}")

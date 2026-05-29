@@ -940,6 +940,14 @@
                 }
             },
             {
+                "code": "reportUnknownMemberType",
+                "range": {
+                    "startColumn": 8,
+                    "endColumn": 25,
+                    "lineCount": 1
+                }
+            },
+            {
                 "code": "reportImplicitOverride",
                 "range": {
                     "startColumn": 8,

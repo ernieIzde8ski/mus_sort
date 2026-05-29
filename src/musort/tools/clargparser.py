@@ -23,14 +23,8 @@ class ClargParser(Tap):
     If not present, defaults to the folder containing the first config file found, or the
     folder being sorted from if no config files were found."""
 
-    folder_mode: bool = False
-    """Sort by moving entire folders around at a time. Useful if your music is already sorted per-album."""
-    file_mode: bool = False
-    """Sort by moving individual music files around. Highly disrecommended if your metadata is
-    inconsistent, or if you don't want to risk leaving album covers and the like behind.
-
-    Alternatively, when used in conjunction with folder-mode, files are renamed within their folders.
-    """
+    keep_directories: bool = False
+    """Rename files without moving them out of their original directories."""
 
     level: int = logging.INFO
     """Logging level. Accepts names from the logging module, eg 'debug' or 'info'."""
@@ -87,6 +81,7 @@ class ClargParser(Tap):
         )
 
         # providing aliases
+        self.add_argument("-k", "--keep_directories")
         self.add_argument("-i", "--ignored_paths")
         self.add_argument("-H", "--hidden")
         self.add_argument("-C", "--clean_after")
@@ -111,12 +106,6 @@ class ClargParser(Tap):
         # making case insensitive
         self.ignored_paths = {*(i.lower() for i in self.ignored_paths), *DEFAULT_IGNORED}
 
-        # ensure at least one sort method is chosen
-        if not (self.file_mode or self.folder_mode):
-            raise ArgumentError(
-                None, "Either --file-mode or --folder-mode should be active"
-            )
-
 
 _VALID_CONFIGS = ("musort_conf", "musort-conf", "musort.txt", "mus_sort.txt")
 
@@ -137,9 +126,11 @@ clargs: ClargParser = ClargParser(
     underscores_to_dashes=True,
     config_files=[str(config)] if config else None,
     epilog=(
-        "This program sorts folders based on ID3 data. "
-        "So, if the tags on your music are unruly, "
-        "it's probably best to sort that out first."
+        """
+        This program sorts & moves existing folders based on ID3 data. If the tags in your
+        library are unruly, or if they're not already organized into album folders, you
+        should sort that out first before using this program.
+        """
     ),
 ).parse_args()
 

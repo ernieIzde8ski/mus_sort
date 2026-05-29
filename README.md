@@ -26,8 +26,6 @@ If found in the present working directory, configuration files named `musort-con
 
 ```sh
 .
-# reorganize by folder and rename tracks
---folder-mode --file-mode
 # ignore FileExistsError
 --replace-duplicates
 # remove emptied directories afterwards
