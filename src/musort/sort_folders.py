@@ -92,7 +92,7 @@ def sort_folder(dir: Path) -> None:
         logging.debug(f"short-circuiting, .musort_ignore file found in {dir}")
         return
 
-    music_path: Optional[Path] = None
+    music_path: Path | None = None
 
     for path in tools.iterdir(dir):
         if path.is_dir():

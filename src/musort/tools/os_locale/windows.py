@@ -22,5 +22,5 @@ REPLACEMENTS: dict[str, str] = {
 def is_hidden(p: Path, /):
     resp: int = ctypes.windll.kernel32.GetFileAttributesW(str(p))
     if resp == -1:
-        raise WindowsError
+        raise OSError
     return resp & 2
