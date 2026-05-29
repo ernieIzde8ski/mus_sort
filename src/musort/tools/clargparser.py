@@ -133,7 +133,7 @@ def find_config_file(folder: Path = Path.cwd()) -> Path | None:
 
 
 config = find_config_file()
-clargs = ClargParser(
+clargs: ClargParser = ClargParser(
     underscores_to_dashes=True,
     config_files=[str(config)] if config else None,
     epilog=(
