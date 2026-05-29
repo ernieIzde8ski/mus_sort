@@ -3,8 +3,9 @@
 # Secondly, Windows
 
 import ctypes
-from builtins import WindowsError
 from pathlib import Path
+
+__all__ = ["REPLACEMENTS", "is_hidden"]
 
 REPLACEMENTS: dict[str, str] = {
     "<": "≺",
