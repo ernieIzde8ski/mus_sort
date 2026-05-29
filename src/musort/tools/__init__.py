@@ -5,10 +5,9 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
-from typing import Optional
+from typing import override
 
 from tinytag import TinyTag
-from typing_extensions import override
 
 from .clargparser import clargs
 from .os_locale import REPLACEMENTS, is_hidden
@@ -28,7 +27,7 @@ __all__ = [
 ]
 
 
-class Errors(list[tuple[str, Optional[str]]]):
+class Errors(list[tuple[str, str | None]]):
     """Error handling. A list of tracebacks and posix-formatted paths."""
 
     def log(
