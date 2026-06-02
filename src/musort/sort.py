@@ -55,13 +55,14 @@ def sort_music_folder(music: MusicFile) -> None:
     source = music.path.parent
     target = music.get_new_dir()
 
-    if source == target:
-        logger.debug(
-            f"Directory at `{source}` is equal to new directory, short-circuiting"
-        )
-        return
-
     try:
+        if source.resolve() == target.resolve():
+            logger.debug(
+                "Short-circuiting for target directory equals source directory: {}",
+                source,
+            )
+            return
+
         target.parent.mkdir(parents=True, exist_ok=True)
         if target.exists():
             raise FileExistsError(str(target))
