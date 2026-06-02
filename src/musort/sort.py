@@ -5,7 +5,8 @@ from pathlib import Path
 from tinytag.tinytag import TinyTagException
 
 from . import tools
-from .tools import MusicFile, Suppress, clargs
+from .music_file import MusicFile
+from .tools import Suppress, clargs
 
 common_exceptions = TinyTagException, OSError
 
