@@ -1,18 +1,15 @@
 def run():
-    import logging
+    from loguru import logger
 
     from .sort import sort
-    from .tools import REPLACEMENTS, clargs, cleanup, errors
+    from .tools import REPLACEMENTS, clargs, cleanup
 
     if clargs.use_dashes:
         REPLACEMENTS["/"] = "-"
 
     sort(*clargs.dirs)
-    logging.info("Done sorting!")
+    logger.info("Done sorting!")
 
     if clargs.clean_after:
         cleanup(clargs.dirs)
-        logging.info("Done cleaning!")
-
-    if errors:
-        errors.recap()
+        logger.info("Done cleaning!")

@@ -1,11 +1,12 @@
 # pyright: reportUninitializedInstanceVariable = false
-import logging
 import os
 import sys
 from collections.abc import Iterable
+from enum import StrEnum
 from pathlib import Path
-from typing import override
+from typing import Self, override
 
+from loguru import logger
 from tap import ArgumentError, Tap
 
 from .. import info
@@ -13,6 +14,18 @@ from .. import info
 type PathLike = os.PathLike[str] | str
 
 DEFAULT_IGNORED = (".git", "itunes")
+
+
+class CisEnum(StrEnum):
+    def __new__(cls, value: str) -> Self:
+        return str.__new__(cls, value.lower())
+
+
+class LogLevel(CisEnum):
+    DEBUG = "debug"
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
 
 
 class ClargParser(Tap):
@@ -26,8 +39,8 @@ class ClargParser(Tap):
     keep_directories: bool = False
     """Rename files without moving them out of their original directories."""
 
-    level: int = logging.INFO
-    """Logging level. Accepts names from the logging module, eg 'debug' or 'info'."""
+    level: LogLevel = LogLevel.INFO
+    """Logger level."""
     ignored_paths: set[str] = set()
     """Ignored file/folder names. Case insensitive."""
 
@@ -53,19 +66,7 @@ class ClargParser(Tap):
             self.config_files = list(config_files)
         return super()._load_from_config_files(config_files=config_files)  # pyright: ignore[reportUnknownMemberType]
 
-    @staticmethod
-    def _get_level(name: str):
-        """Get logging level from a string."""
-        if name.isnumeric():
-            num = int(name)
-            if num in logging._levelToName:
-                return num
-        else:
-            name = name.upper()
-            if name in logging._nameToLevel:
-                return logging._nameToLevel[name]
-        raise ValueError(f"Name '{name}' is not a valid level!")
-
+    @override
     def configure(self) -> None:
         self.add_argument(
             "-V", "--version", action="version", version=f"musort v{info.__version__}"
@@ -76,9 +77,7 @@ class ClargParser(Tap):
         self.add_argument("-T", "--target", required=False)
 
         # logging module weirdness
-        self.add_argument(
-            "-l", "--level", type=self._get_level, choices=(logging._levelToName)
-        )
+        self.add_argument("-l", "--level", choices=LogLevel)
 
         # providing aliases
         self.add_argument("-k", "--keep_directories")
@@ -86,6 +85,7 @@ class ClargParser(Tap):
         self.add_argument("-H", "--hidden")
         self.add_argument("-C", "--clean_after")
         self.add_argument("-S", "--single_genre")
+        self.add_argument("-d", "--use_dashes")
 
     def process_args(self) -> None:
         # ensure given directories exist
@@ -134,6 +134,5 @@ clargs: ClargParser = ClargParser(
     ),
 ).parse_args()
 
-logging.basicConfig(level=clargs.level, stream=sys.stdout)
-
-logging.debug(f"current command-line arguments:\n{clargs}")
+_ = logger.add(sys.stdout, level=clargs.level.upper())
+logger.debug(f"Current command-line arguments: {clargs}")

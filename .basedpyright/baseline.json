@@ -1,57 +1,7 @@
 {
     "files": {
-        "./src/musort/tools/__init__.py": [
-            {
-                "code": "reportUnannotatedClassAttribute",
-                "range": {
-                    "startColumn": 13,
-                    "endColumn": 17,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportUnannotatedClassAttribute",
-                "range": {
-                    "startColumn": 13,
-                    "endColumn": 19,
-                    "lineCount": 1
-                }
-            }
-        ],
         "./src/musort/tools/clargparser.py": [
             {
-                "code": "reportPrivateUsage",
-                "range": {
-                    "startColumn": 30,
-                    "endColumn": 42,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportPrivateUsage",
-                "range": {
-                    "startColumn": 31,
-                    "endColumn": 43,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportPrivateUsage",
-                "range": {
-                    "startColumn": 31,
-                    "endColumn": 43,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportImplicitOverride",
-                "range": {
-                    "startColumn": 8,
-                    "endColumn": 17,
-                    "lineCount": 1
-                }
-            },
-            {
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 8,
@@ -84,10 +34,10 @@
                 }
             },
             {
-                "code": "reportPrivateUsage",
+                "code": "reportUnknownMemberType",
                 "range": {
-                    "startColumn": 68,
-                    "endColumn": 80,
+                    "startColumn": 8,
+                    "endColumn": 25,
                     "lineCount": 1
                 }
             },
