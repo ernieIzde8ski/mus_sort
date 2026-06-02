@@ -19,6 +19,7 @@ repos:
           - tinytag>=1.8.1
           - typed-argument-parser>=1.7.2
           - typer>=0.15.1
+        pass_filenames: false
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.15
     hooks:
