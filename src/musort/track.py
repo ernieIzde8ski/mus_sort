@@ -1,3 +1,4 @@
+import re
 import textwrap
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
@@ -38,8 +39,27 @@ class Track:
         return self.tags.album
 
     @cached_property
-    def year(self) -> str | None:
+    def date(self) -> str | None:
         return self.tags.year
+
+    @property
+    def year(self) -> int | None:
+        date = self.date
+        if not date:
+            return
+        year_match = re.search(r"\b\d{4}\b", date)
+        if year_match is not None:
+            year = year_match.group(0).lstrip("0")
+            if not year:
+                return 0
+            else:
+                return int(year_match.group(0))
+
+    @property
+    def year_string(self) -> str | None:
+        year = self.year
+        if year is not None:
+            return str(self.year).zfill(4)
 
     @cached_property
     def title(self) -> str | None:
@@ -121,11 +141,13 @@ class Track:
             self.prepare_component(self.genre, default="UNKNOWN GENRE"),
             self.prepare_component(self.artist, default="UNKNOWN ARTIST"),
         ]
+
         album = self.prepare_component(self.album, default="UNKNOWN ALBUM")
-        if self.year:
-            year = self.prepare_component(self.year, splitters=";.-").zfill(4)
+        year = self.year_string
+        if year:
             album = f"{year} - {album}"
         components.append(album)
+
         return map(self.truncate_component, components)
 
     def get_new_name(self) -> str:
