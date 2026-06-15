@@ -87,3 +87,4 @@ Updates to build process, ease-of-access, and project layout.
 - remove references to global variables in `MusicFile` methods
 - rename `MusicFile` to `Track`
 - add log for broken metadata
+- remove `cache` class, add `_GENRE_CACHE` attribute to `Track` in its place

@@ -4,14 +4,20 @@ from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from functools import cached_property, partial
 from pathlib import Path
-from typing import ClassVar, overload
+from typing import ClassVar, NewType, cast, overload
 
 from tinytag import TinyTag
 
-from musort.tools import cache, clargs
+from musort.tools import clargs
 from musort.typeshed import EMPTY_MAP, SupportsItems
 
 __all__ = ["Track"]
+
+
+Genre = NewType("Genre", str)
+Artist = NewType("Artist", str)
+Album = NewType("Album", str)
+Year = NewType("Year", int)
 
 
 @dataclass
@@ -23,27 +29,32 @@ class Track:
     tags: TinyTag
     """Extracted track metadata."""
 
-    @cached_property
-    def genre(self) -> str | None:
-        artist = self.artist
-        if clargs.single_genre and artist:
-            return cache.genre(artist, default=self.tags.genre)
-        return self.tags.genre
+    _GENRE_CACHE: ClassVar[dict[str, Genre | None]] = {}
 
     @cached_property
-    def artist(self) -> str | None:
-        return self.tags.albumartist or self.tags.artist
+    def genre(self) -> Genre | None:
+        genre = cast(Genre | None, self.tags.genre)
+        if clargs.single_genre and (artist := self.artist):
+            artist = artist.lower()
+            genre = self._GENRE_CACHE.setdefault(artist, genre)
+        return genre
 
     @cached_property
-    def album(self) -> str | None:
-        return self.tags.album
+    def artist(self) -> Artist | None:
+        value = self.tags.albumartist or self.tags.artist
+        if value is not None:
+            return cast(Artist, value.strip())
+
+    @cached_property
+    def album(self) -> Album | None:
+        return self.tags.album  # pyright: ignore[reportReturnType]
 
     @cached_property
     def date(self) -> str | None:
         return self.tags.year
 
     @property
-    def year(self) -> int | None:
+    def year(self) -> Year | None:
         date = self.date
         if not date:
             return
@@ -51,9 +62,9 @@ class Track:
         if year_match is not None:
             year = year_match.group(0).lstrip("0")
             if not year:
-                return 0
+                return 0  # pyright: ignore[reportReturnType]
             else:
-                return int(year_match.group(0))
+                return int(year_match.group(0))  # pyright: ignore[reportReturnType]
 
     @property
     def year_string(self) -> str | None:
