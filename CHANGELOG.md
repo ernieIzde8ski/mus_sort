@@ -86,3 +86,4 @@ Updates to build process, ease-of-access, and project layout.
 - replace attributes on `MusicFile` with cached_property instances
 - remove references to global variables in `MusicFile` methods
 - rename `MusicFile` to `Track`
+- add log for broken metadata

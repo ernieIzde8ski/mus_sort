@@ -156,3 +156,6 @@ class Track:
         body = self.truncate_component(f"{track} - {title}")
         suffix = self.path.suffix.lower()
         return body + suffix
+
+    def has_complete_metadata(self) -> bool:
+        return all((self.year is not None, self.genre, self.artist, self.album))

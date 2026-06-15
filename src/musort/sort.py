@@ -50,17 +50,18 @@ def replace_folder(source: Path, target: Path):
             replace_folder(sfile, tfile)
 
 
-def sort_music_folder(music: Track, target_root: Path) -> None:
+def sort_album(track: Track, target_root: Path) -> None:
     """Sort a folder containing a music file."""
-    source = music.path.parent
-    target = target_root.joinpath(*music.get_new_dir())
+    source = track.path.parent
+    target = target_root.joinpath(*track.get_new_dir())
+
+    has_all_metadata = track.has_complete_metadata()
+    if not has_all_metadata:
+        logger.warning("Track appears to be missing metadata: {}", track.path)
 
     try:
         if source.resolve() == target.resolve():
-            logger.debug(
-                "Short-circuiting for target directory equals source directory: {}",
-                source,
-            )
+            logger.debug("Short-circuiting, target directory equals source: {}", source)
             return
 
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -76,10 +77,7 @@ def sort_music_folder(music: Track, target_root: Path) -> None:
         if not (err.errno == errno.ENOTEMPTY or isinstance(err, FileExistsError)):
             raise
 
-        if not music.artist or not music.album:
-            logger.debug(
-                f"Ignoring possible duplicate at {source.as_posix()}; ID3 tags may be missing"
-            )
+        if not has_all_metadata:
             raise
         replace_folder(source, target)
         logger.info(f"Replaced {source.as_posix()} -> {target.as_posix()}")
@@ -114,7 +112,7 @@ def sort_folder(dir: Path, target_root: Path) -> None:
 
     if music_path is not None:
         try:
-            sort_music_folder(Track.get(music_path), target_root=target_root)
+            sort_album(Track.get(music_path), target_root=target_root)
         except COMMON_EXCEPTIONS:
             logger.exception(f"An exception occurred while handling {music_path}")
 
