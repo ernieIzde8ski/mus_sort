@@ -1,8 +1,9 @@
 import textwrap
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
-from functools import cached_property
+from functools import cached_property, partial
 from pathlib import Path
-from typing import ClassVar
+from typing import ClassVar, overload
 
 from tinytag import TinyTag
 
@@ -79,36 +80,54 @@ class MusicFile:
     def is_music(cls, path: Path):
         return path.is_file() and path.suffix.lower() in cls._FILE_SUFFIXES
 
+    @overload
+    @staticmethod
+    def prepare_component(
+        comp: str, /, default: object = None, splitters: Iterable[str] = ";"
+    ) -> str: ...
+
+    @overload
     @staticmethod
     def prepare_component[T](
-        tag: str | None, default: T = None, max_size: int = 70
-    ) -> str | T:
-        """Prepare a TinyTag component for being used as a file path."""
-        if not tag:
+        comp: str | None, /, default: T = None, splitters: Iterable[str] = ";"
+    ) -> T | str: ...
+
+    @staticmethod
+    def prepare_component[T](
+        comp: str | None, default: T = None, splitters: Iterable[str] = ";"
+    ) -> T | str:
+        """Prepare a string for being used as a file path."""
+        if comp is None:
             return default
-        # sometimes a genre tag is actually multiple genres split by semicolons
-        resp = tag.split(";")[0].strip()
+        # handle genres split by semicolons, dates with information after the year, etc
+        for splitter in splitters:
+            comp = comp.split(splitter)[0].strip()
         # remove characters that result in invalid filenames
         for s0, s1 in REPLACEMENTS.items():
-            resp = resp.replace(s0, s1)
+            comp = comp.replace(s0, s1)
         # reducing the length of the string
-        # the default being 70 is absolutely arbitrary
-        return textwrap.fill(resp, width=max_size, placeholder="(…)", max_lines=1)
+        # the default being 80 is mostly arbitrary
+        return comp
 
-    def get_new_dir(self, target: Path = clargs.target, /) -> Path:
-        genre = self.prepare_component(self.genre, default="UNKNOWN_GENRE")
-        artist = self.prepare_component(self.artist, default="UNKNOWN_ARTIST")
-        album = self.prepare_component(self.album, default="UNKNOWN_ALBUM")
+    truncate_component: ClassVar[Callable[[str], str]] = staticmethod(
+        partial(textwrap.fill, width=80, placeholder="(…)", max_lines=1)
+    )
+
+    def get_new_dir(self) -> Iterator[str]:
+        components = [
+            self.prepare_component(self.genre, default="UNKNOWN GENRE"),
+            self.prepare_component(self.artist, default="UNKNOWN ARTIST"),
+        ]
+        album = self.prepare_component(self.album, default="UNKNOWN ALBUM")
         if self.year:
-            album = f"{self.prepare_component(self.year)} - {album}"
-        return target / genre / artist / album
+            year = self.prepare_component(self.year, splitters=";.-").zfill(4)
+            album = f"{year} - {album}"
+        components.append(album)
+        return map(self.truncate_component, components)
 
     def get_new_name(self) -> str:
         track = (str(self.track) if self.track else "").zfill(2)
-        title = self.prepare_component(self.title, default="UNKNOWN_TRACK")
+        title = self.prepare_component(self.title, default="UNKNOWN TRACK")
+        body = self.truncate_component(f"{track} - {title}")
         suffix = self.path.suffix.lower()
-        return f"{track} - {title}{suffix}"
-
-    def get_new_path(self, target: Path = clargs.target) -> Path:
-        """Shorthand for `MusicFile.get_new_dir(target) / MusicFile.get_new_name()`"""
-        return self.get_new_dir(target) / self.get_new_name()
+        return body + suffix

@@ -7,7 +7,7 @@ def run():
     if clargs.use_dashes:
         REPLACEMENTS["/"] = "-"
 
-    sort(*clargs.dirs)
+    sort(*clargs.dirs, target_root=clargs.target)
     logger.info("Done sorting!")
 
     if clargs.clean_after:

@@ -50,10 +50,10 @@ def replace_folder(source: Path, target: Path):
             replace_folder(sfile, tfile)
 
 
-def sort_music_folder(music: MusicFile) -> None:
+def sort_music_folder(music: MusicFile, target_root: Path) -> None:
     """Sort a folder containing a music file."""
     source = music.path.parent
-    target = music.get_new_dir()
+    target = target_root.joinpath(*music.get_new_dir())
 
     try:
         if source.resolve() == target.resolve():
@@ -85,7 +85,7 @@ def sort_music_folder(music: MusicFile) -> None:
         logger.info(f"Replaced {source.as_posix()} -> {target.as_posix()}")
 
 
-def sort_folder(dir: Path) -> None:
+def sort_folder(dir: Path, target_root: Path) -> None:
     """Sort a given folder and all subfolders."""
 
     # folders containing a .musort_ignore file are unconditionally skipped
@@ -97,7 +97,7 @@ def sort_folder(dir: Path) -> None:
 
     for path in tools.iterdir(dir):
         if path.is_dir():
-            sort(path)
+            sort(path, target_root=target_root)
         elif (clargs.keep_directories or not music_path) and MusicFile.is_music(path):
             path = path.resolve()
             if clargs.keep_directories:
@@ -114,14 +114,14 @@ def sort_folder(dir: Path) -> None:
 
     if music_path is not None:
         try:
-            sort_music_folder(MusicFile.get(music_path))
+            sort_music_folder(MusicFile.get(music_path), target_root=target_root)
         except COMMON_EXCEPTIONS:
             logger.exception(f"An exception occurred while handling {music_path}")
 
 
-def sort(*dirs: Path):
+def sort(*dirs: Path, target_root: Path):
     for dir in dirs:
         if not dir.is_dir():
-            logger.error(f"error: path is not a directory: {dir}")
+            logger.error(f"path is not a directory: {dir}")
         else:
-            sort_folder(dir)
+            sort_folder(dir, target_root=target_root)
