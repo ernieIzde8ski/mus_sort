@@ -83,3 +83,4 @@ Updates to build process, ease-of-access, and project layout.
 - remove --folder-mode
 - replace --file-mode with --keep-directories
 - add & remove `mut_chain.py`
+- replace attributes on `MusicFile` with cached_property instances

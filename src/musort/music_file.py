@@ -1,5 +1,6 @@
 import textwrap
 from dataclasses import dataclass
+from functools import cached_property
 from pathlib import Path
 from typing import ClassVar
 
@@ -14,40 +15,45 @@ __all__ = ["MusicFile"]
 class MusicFile:
     """Contains music file information."""
 
-    tags: TinyTag
-    """Where data is pulled from."""
     path: Path
     """Path to the file."""
 
-    genre: str | None = None
-    artist: str | None = None
-    album: str | None = None
-    year: str | None = None
-    title: str | None = None
-    """Name of the track."""
-    track: int | None = None
-    """Track number."""
+    tags: TinyTag
+    """Where data is pulled from."""
+
+    @cached_property
+    def genre(self) -> str | None:
+        artist = self.artist
+        if clargs.single_genre and artist:
+            return cache.genre(artist, default=self.tags.genre)
+        return self.tags.genre
+
+    @cached_property
+    def artist(self) -> str | None:
+        return self.tags.albumartist or self.tags.artist
+
+    @cached_property
+    def album(self) -> str | None:
+        return self.tags.album
+
+    @cached_property
+    def year(self) -> str | None:
+        return self.tags.year
+
+    @cached_property
+    def title(self) -> str | None:
+        """Name of the track."""
+        return self.tags.year
+
+    @cached_property
+    def track(self) -> int | None:
+        """Track number."""
+        return self.tags.track
 
     @classmethod
     def get(cls, path: Path, /):
         """Constructs an instance of MusicFile from a path to a music file."""
-        tags = TinyTag.get(path)
-        artist = tags.albumartist or tags.artist
-        genre = (
-            cache.genre(artist, default=tags.genre)
-            if clargs.single_genre and artist
-            else tags.genre
-        )
-        return cls(
-            tags=tags,
-            path=path,
-            genre=genre,
-            artist=artist,
-            album=tags.album,
-            year=tags.year,
-            title=tags.title,
-            track=tags.track,
-        )
+        return cls(path, TinyTag.get(path))
 
     _FILE_SUFFIXES: ClassVar[set[str]] = {
         ".mp1",
@@ -74,7 +80,9 @@ class MusicFile:
         return path.is_file() and path.suffix.lower() in cls._FILE_SUFFIXES
 
     @staticmethod
-    def prepare_component(tag: str | None, default: str = "UNKNOWN", max_size: int = 70):
+    def prepare_component[T](
+        tag: str | None, default: T = None, max_size: int = 70
+    ) -> str | T:
         """Prepare a TinyTag component for being used as a file path."""
         if not tag:
             return default
