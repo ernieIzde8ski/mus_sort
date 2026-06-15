@@ -1,34 +1,14 @@
 import textwrap
-from collections.abc import Callable, Iterable, Iterator, Set
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from functools import cached_property, partial
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar, Literal, Never, Protocol, overload, override
+from typing import ClassVar, overload
 
 from tinytag import TinyTag
 
 from musort.tools import cache, clargs
-
-if TYPE_CHECKING:
-    from _typeshed import SupportsItems
-else:
-
-    class SupportsItems[A, B](Protocol): ...
-
-    class SupportsBool(Protocol): ...
-
-
-class EmptyMap(SupportsItems[Never, Never]):
-    @override
-    def items(self) -> Set[Never]:
-        return set()
-
-    def __bool__(self) -> Literal[False]:
-        return False
-
-
-EMPTY_MAP = EmptyMap()
-
+from musort.typeshed import EMPTY_MAP, SupportsItems
 
 __all__ = ["Track"]
 
@@ -117,7 +97,7 @@ class Track:
         comp: str | None,
         default: T = None,
         splitters: Iterable[str] = ";",
-        replacements: "SupportsItems[str, str] | None" = None,
+        replacements: SupportsItems[str, str] | None = None,
     ) -> T | str:
         """Prepare a string for being used as a file path."""
         if comp is None:
