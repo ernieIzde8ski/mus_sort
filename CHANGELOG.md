@@ -82,3 +82,4 @@ Updates to build process, ease-of-access, and project layout.
   - add (incomplete) type stubs for tinytag
 - remove --folder-mode
 - replace --file-mode with --keep-directories
+- add & remove `mut_chain.py`

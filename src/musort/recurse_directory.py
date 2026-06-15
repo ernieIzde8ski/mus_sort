@@ -1,9 +1,9 @@
+from collections import deque
 from collections.abc import Generator, Iterable, Mapping, Sequence
 from collections.abc import Set as AbstractSet
 from pathlib import Path
 from typing import NewType, TypeGuard
 
-from .mut_chain import MutChain
 from .tools import is_hidden
 
 type SupportsContainsItem[T] = Sequence[T] | AbstractSet[T] | Mapping[str, object]
@@ -31,9 +31,10 @@ def recurse_music_directory(
     music_exts = {ext.lower() for ext in music_exts}
     ignored_names = {name.lower() for name in ignored_names}
 
-    paths = MutChain([root])
+    paths = deque([root])
 
-    for path in paths:
+    while paths:
+        path = paths.popleft()
         if path.name.lower() in ignored_names:
             continue
 
@@ -44,7 +45,7 @@ def recurse_music_directory(
             continue
 
         if is_directory(path):
-            paths.aftspread(path.iterdir())
+            paths.extend(path.iterdir())
 
         if is_music_file(path, music_exts):
             yield path
