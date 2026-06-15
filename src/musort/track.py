@@ -1,13 +1,34 @@
 import textwrap
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator, Set
 from dataclasses import dataclass
 from functools import cached_property, partial
 from pathlib import Path
-from typing import ClassVar, overload
+from typing import TYPE_CHECKING, ClassVar, Literal, Never, Protocol, overload, override
 
 from tinytag import TinyTag
 
-from musort.tools import REPLACEMENTS, cache, clargs
+from musort.tools import cache, clargs
+
+if TYPE_CHECKING:
+    from _typeshed import SupportsItems
+else:
+
+    class SupportsItems[A, B](Protocol): ...
+
+    class SupportsBool(Protocol): ...
+
+
+class EmptyMap(SupportsItems[Never, Never]):
+    @override
+    def items(self) -> Set[Never]:
+        return set()
+
+    def __bool__(self) -> Literal[False]:
+        return False
+
+
+EMPTY_MAP = EmptyMap()
+
 
 __all__ = ["Track"]
 
@@ -93,19 +114,22 @@ class Track:
 
     @staticmethod
     def prepare_component[T](
-        comp: str | None, default: T = None, splitters: Iterable[str] = ";"
+        comp: str | None,
+        default: T = None,
+        splitters: Iterable[str] = ";",
+        replacements: "SupportsItems[str, str] | None" = None,
     ) -> T | str:
         """Prepare a string for being used as a file path."""
         if comp is None:
             return default
-        # handle genres split by semicolons, dates with information after the year, etc
+        if replacements is None:
+            replacements = EMPTY_MAP
+        # handle genres split by semicolons, full dates, etc
         for splitter in splitters:
             comp = comp.split(splitter)[0].strip()
         # remove characters that result in invalid filenames
-        for s0, s1 in REPLACEMENTS.items():
+        for s0, s1 in replacements.items():
             comp = comp.replace(s0, s1)
-        # reducing the length of the string
-        # the default being 80 is mostly arbitrary
         return comp
 
     truncate_component: ClassVar[Callable[[str], str]] = staticmethod(
