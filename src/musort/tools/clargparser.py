@@ -134,5 +134,6 @@ clargs: ClargParser = ClargParser(
     ),
 ).parse_args()
 
+logger.remove()
 _ = logger.add(sys.stdout, level=clargs.level.upper())
 logger.debug(f"Current command-line arguments: {clargs}")
