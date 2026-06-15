@@ -9,18 +9,17 @@ from tinytag import TinyTag
 
 from musort.tools import REPLACEMENTS, cache, clargs
 
-__all__ = ["MusicFile"]
+__all__ = ["Track"]
 
 
 @dataclass
-class MusicFile:
-    """Contains music file information."""
+class Track:
+    """Contains track file information."""
 
     path: Path
-    """Path to the file."""
-
+    """Track path."""
     tags: TinyTag
-    """Where data is pulled from."""
+    """Extracted track metadata."""
 
     @cached_property
     def genre(self) -> str | None:

@@ -5,14 +5,14 @@ from loguru import logger
 from tinytag.tinytag import TinyTagException
 
 from . import tools
-from .music_file import MusicFile
 from .tools import clargs
+from .track import Track
 
 COMMON_EXCEPTIONS = TinyTagException, OSError
 
 
 def rename_file_in_place(path: Path) -> Path:
-    music = MusicFile.get(path)
+    music = Track.get(path)
     old_name = path.as_posix()
     new_path = path.parent / music.get_new_name()
 
@@ -50,7 +50,7 @@ def replace_folder(source: Path, target: Path):
             replace_folder(sfile, tfile)
 
 
-def sort_music_folder(music: MusicFile, target_root: Path) -> None:
+def sort_music_folder(music: Track, target_root: Path) -> None:
     """Sort a folder containing a music file."""
     source = music.path.parent
     target = target_root.joinpath(*music.get_new_dir())
@@ -98,7 +98,7 @@ def sort_folder(dir: Path, target_root: Path) -> None:
     for path in tools.iterdir(dir):
         if path.is_dir():
             sort(path, target_root=target_root)
-        elif (clargs.keep_directories or not music_path) and MusicFile.is_music(path):
+        elif (clargs.keep_directories or not music_path) and Track.is_music(path):
             path = path.resolve()
             if clargs.keep_directories:
                 try:
@@ -114,7 +114,7 @@ def sort_folder(dir: Path, target_root: Path) -> None:
 
     if music_path is not None:
         try:
-            sort_music_folder(MusicFile.get(music_path), target_root=target_root)
+            sort_music_folder(Track.get(music_path), target_root=target_root)
         except COMMON_EXCEPTIONS:
             logger.exception(f"An exception occurred while handling {music_path}")
 
