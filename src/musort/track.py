@@ -75,7 +75,7 @@ class Track:
     @cached_property
     def title(self) -> str | None:
         """Name of the track."""
-        return self.tags.year
+        return self.tags.title
 
     @cached_property
     def track(self) -> int | None:

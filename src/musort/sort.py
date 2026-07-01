@@ -11,12 +11,13 @@ from .track import Track
 COMMON_EXCEPTIONS = TinyTagException, OSError
 
 
-def rename_file_in_place(path: Path) -> Path:
+def rename_track_file(path: Path) -> Path:
+    """Renames a track file. Does not move it from its original directory."""
     music = Track.get(path)
     old_name = path.as_posix()
     new_path = path.parent / music.get_new_name()
 
-    if path == new_path:
+    if path.resolve() == new_path.resolve():
         logger.debug(f"File at `{old_name}` is equal to new path, short-circuiting")
         return path
 
@@ -96,21 +97,16 @@ def sort_folder(dir: Path, target_root: Path) -> None:
     for path in tools.iterdir(dir):
         if path.is_dir():
             sort(path, target_root=target_root)
-        elif (clargs.keep_directories or not music_path) and Track.is_music(path):
+        elif Track.is_music(path):
             path = path.resolve()
-            if clargs.keep_directories:
-                try:
-                    music_path = rename_file_in_place(path)
-                    logger.debug(f"Assigned music_path value to {music_path.as_posix()}")
-                except COMMON_EXCEPTIONS:
-                    logger.exception(f"An exception occurred while handling {path}")
-            elif not music_path:
-                # upon finding a music file, we save it for later
-                # I think this could probably cause some minimal lag but w/e
-                music_path = path
-                logger.debug(f"Found music file at {music_path.as_posix()}")
+            try:
+                logger.debug(f"Found track file at {path.as_posix()}")
+                music_path = rename_track_file(path)
+                logger.debug(f"Set music_path to {music_path.as_posix()}")
+            except COMMON_EXCEPTIONS:
+                logger.exception(f"An exception occurred while handling {path}")
 
-    if music_path is not None:
+    if not clargs.keep_directories and music_path is not None:
         try:
             sort_album(Track.get(music_path), target_root=target_root)
         except COMMON_EXCEPTIONS:
